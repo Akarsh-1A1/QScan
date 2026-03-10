@@ -1,0 +1,145 @@
+{
+  "cbom_version": "1.0",
+  "schema": "https://qscan.github.io/cbom/schema/v1",
+  "metadata": {
+    "organization_domain": "example-bank.com",
+    "scan_timestamp": "20250310T120000Z",
+    "generated_at": "2025-03-10T12:05:00Z",
+    "tool": "QScan Quantum Readiness Assessment Platform",
+    "tool_version": "1.0.0",
+    "total_assets_scanned": 2
+  },
+  "summary": {
+    "total_assets": 2,
+    "average_risk_score": 62.5,
+    "risk_distribution": {
+      "CRITICAL": 0,
+      "HIGH": 1,
+      "MEDIUM": 1,
+      "LOW": 0,
+      "SAFE": 0
+    },
+    "pqc_status_distribution": {
+      "PQC_READY": 0,
+      "HYBRID_PQC": 0,
+      "MIGRATION_NEEDED": 2,
+      "CRITICAL": 0
+    },
+    "forward_secrecy_adoption": "1/2",
+    "overall_quantum_readiness": "NOT_READY"
+  },
+  "crypto_assets": [
+    {
+      "asset_id": "ASSET-0001-www-example-bank-com-443",
+      "host": "www.example-bank.com",
+      "port": 443,
+      "tls_configuration": {
+        "protocol_version": "TLSv1.3",
+        "negotiated_cipher": "TLS_AES_256_GCM_SHA384",
+        "cipher_strength_bits": 256,
+        "supported_protocols": ["TLSv1.3", "TLSv1.2"],
+        "key_exchange": "ECDHE"
+      },
+      "quantum_assessment": {
+        "risk_score": 45.0,
+        "risk_level": "MEDIUM",
+        "pqc_status": "MIGRATION_NEEDED",
+        "threat_assessment": {
+          "hndl_risk": "MEDIUM",
+          "estimated_quantum_threat": "2030-2035",
+          "migration_deadline": "2028",
+          "urgency": "PLANNED"
+        }
+      },
+      "recommendations": [
+        {
+          "component": "Key Exchange",
+          "current": "ECDHE",
+          "recommended": "ML-KEM-768 (Kyber)",
+          "nist_standard": "FIPS 203",
+          "priority": "MEDIUM",
+          "hybrid_option": "X25519+ML-KEM-768"
+        }
+      ]
+    },
+    {
+      "asset_id": "ASSET-0002-api-example-bank-com-443",
+      "host": "api.example-bank.com",
+      "port": 443,
+      "tls_configuration": {
+        "protocol_version": "TLSv1.2",
+        "negotiated_cipher": "ECDHE-RSA-AES128-GCM-SHA256",
+        "cipher_strength_bits": 128,
+        "supported_protocols": ["TLSv1.2", "TLSv1.1"],
+        "key_exchange": "ECDHE"
+      },
+      "quantum_assessment": {
+        "risk_score": 80.0,
+        "risk_level": "HIGH",
+        "pqc_status": "MIGRATION_NEEDED",
+        "threat_assessment": {
+          "hndl_risk": "MEDIUM",
+          "estimated_quantum_threat": "2030-2035",
+          "migration_deadline": "2026",
+          "urgency": "IMMEDIATE"
+        }
+      },
+      "recommendations": [
+        {
+          "component": "Key Exchange",
+          "current": "ECDHE",
+          "recommended": "ML-KEM-768 (Kyber)",
+          "nist_standard": "FIPS 203",
+          "priority": "MEDIUM",
+          "hybrid_option": "X25519+ML-KEM-768"
+        },
+        {
+          "component": "TLS Protocol",
+          "current": "TLSv1.1",
+          "recommended": "TLS 1.3",
+          "priority": "CRITICAL"
+        }
+      ]
+    }
+  ],
+  "risk_matrix": [
+    {
+      "host": "api.example-bank.com",
+      "port": 443,
+      "risk_score": 80.0,
+      "risk_level": "HIGH",
+      "pqc_status": "MIGRATION_NEEDED",
+      "urgency": "IMMEDIATE"
+    },
+    {
+      "host": "www.example-bank.com",
+      "port": 443,
+      "risk_score": 45.0,
+      "risk_level": "MEDIUM",
+      "pqc_status": "MIGRATION_NEEDED",
+      "urgency": "PLANNED"
+    }
+  ],
+  "pqc_migration_plan": {
+    "immediate_actions": [
+      {
+        "host": "api.example-bank.com",
+        "component": "TLS Protocol",
+        "current": "TLSv1.1",
+        "recommended": "TLS 1.3",
+        "priority": "CRITICAL"
+      }
+    ],
+    "short_term_actions": [],
+    "planned_actions": [
+      {
+        "host": "www.example-bank.com",
+        "component": "Key Exchange",
+        "current": "ECDHE",
+        "recommended": "ML-KEM-768 (Kyber)",
+        "priority": "MEDIUM"
+      }
+    ],
+    "total_recommendations": 2
+  }
+}

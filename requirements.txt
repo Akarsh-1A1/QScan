@@ -1,0 +1,27 @@
+# Core Dependencies
+cryptography>=42.0.0
+requests>=2.31.0
+dnspython>=2.5.0
+tqdm>=4.66.0
+
+# TLS/SSL Analysis
+pyOpenSSL>=24.0.0
+certifi>=2024.2.2
+
+# Network Scanning
+python-nmap>=0.7.1
+
+# Data Processing
+jsonschema>=4.21.0
+
+# CLI
+argparse
+
+# --- Future Dependencies ---
+# scikit-learn>=1.4.0
+# xgboost>=2.0.0
+# fastapi>=0.110.0
+# uvicorn>=0.27.0
+# pandas>=2.2.0
+# sqlalchemy>=2.0.0
+# psycopg2-binary>=2.9.0
