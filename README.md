@@ -172,7 +172,7 @@ This project is developed for the **PNB Cybersecurity Hackathon 2025**.
 
 ## 👥 Team
 
-- **Akarsh-1A1** — [GitHub](https://github.com/Akarsh-1A1)
+- **Akarsh Raj** — [GitHub](https://github.com/Akarsh-1A1)
 
 ---
 
