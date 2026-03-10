@@ -37,7 +37,13 @@ Cryptographic Parser
 CBOM Generator
       │
       ▼
-Quantum Risk Analyzer
+Quantum Risk Analyzer (Rule-Based)
+      │
+      ▼
+AI/ML Risk Scoring Engine (XGBoost)
+      │
+      ▼
+Anomaly Detection
       │
       ▼
 PQC Migration Advisor
@@ -61,7 +67,13 @@ qscan/
 │   └── port_scanner.py          # Port scanning module
 ├── crypto/
 │   ├── cipher_parser.py         # Cipher suite parsing & classification
-│   └── pqc_classifier.py        # PQC readiness classification
+│   └── pqc_classifier.py        # PQC readiness classification (rule-based)
+├── ai_ml/
+│   ├── risk_scoring_model.py    # ML-based quantum risk scoring (XGBoost)
+│   ├── feature_engineering.py   # Feature extraction from scan data
+│   ├── anomaly_detection.py     # Unusual crypto config detection
+│   ├── training_data.py         # Training dataset generation
+│   └── models/                  # Saved trained models
 ├── cbom/
 │   └── cbom_generator.py        # CBOM JSON generation
 ├── utils/
@@ -107,18 +119,31 @@ python main.py --domain example.com --discover --cbom
 | **TLS Scanner** | Performs TLS handshakes to extract protocol versions, cipher suites, and certificate details |
 | **Port Scanner** | Identifies open ports with TLS-enabled services |
 | **Cipher Parser** | Classifies cipher suites by quantum vulnerability level |
-| **PQC Classifier** | Evaluates quantum readiness and recommends NIST PQC algorithms |
+| **PQC Classifier** | Evaluates quantum readiness and recommends NIST PQC algorithms (rule-based) |
 | **CBOM Generator** | Produces a structured Cryptographic Bill of Materials in JSON format |
+| **AI Risk Scorer** | XGBoost/sklearn model that learns optimal risk scoring from scan data |
+| **Feature Engineering** | Extracts and transforms crypto scan data into ML-ready features |
+| **Anomaly Detection** | Isolation Forest model to flag unusual or suspicious crypto configurations |
+| **Training Data** | Generates labeled datasets from real scans and synthetic crypto configs |
 
 ## 🔐 Quantum Risk Scoring
 
-Each asset is assigned a **Quantum Risk Score** based on:
+Each asset is assigned a **Quantum Risk Score** (0–100) using a **hybrid approach**:
 
-- Cryptographic algorithm type (RSA, ECC, AES, etc.)
-- Key length and strength
-- TLS protocol version
-- Certificate properties
-- System exposure level
+1. **Rule-Based Scoring** (`pqc_classifier.py`) — weighted formula using:
+   - Cryptographic algorithm type (RSA, ECC, AES, etc.)
+   - Key length and strength
+   - TLS protocol version
+   - Certificate properties
+   - Forward secrecy support
+
+2. **AI/ML Scoring** (`ai_ml/risk_scoring_model.py`) — XGBoost model that:
+   - Learns from labeled scan data and synthetic training sets
+   - Discovers hidden risk patterns beyond manual rules
+   - Provides more accurate scoring over time
+   - Falls back to rule-based scoring when model is not yet trained
+
+3. **Anomaly Detection** (`ai_ml/anomaly_detection.py`) — flags unusual configs that both rule-based and ML scoring might miss
 
 ## 📊 PQC Recommendations
 
@@ -134,7 +159,8 @@ The platform recommends NIST-standardized PQC algorithms:
 ## 🛣️ Roadmap
 
 - [x] Core scanning pipeline
-- [ ] AI-driven quantum risk scoring
+- [x] AI/ML module structure (risk scoring, feature engineering, anomaly detection)
+- [ ] AI/ML model training and integration
 - [ ] PQC migration advisor
 - [ ] Quantum readiness dashboard
 - [ ] SIEM integration
