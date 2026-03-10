@@ -1,0 +1,6 @@
+# Trained models are stored here
+# This directory is gitignored except for this file
+*.pkl
+*.joblib
+*.h5
+!.gitkeep
