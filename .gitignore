@@ -33,10 +33,14 @@ Thumbs.db
 *.log
 logs/
 
-# Scan Results (keep demo_results and whitelisted samples only)
+# Scan Results
 results/
-!results/pnbindia.in_20260311_173218/
 output/
+*.csv
+
+# ML Models
+ai_ml/models/
+*.joblib
 
 # Database
 *.db

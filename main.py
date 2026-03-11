@@ -4,6 +4,8 @@ Main CLI Entry Point
 
 Usage:
     python main.py --domain <target_domain> [--discover] [--cbom] [--output <path>]
+    python main.py --domain <target_domain> --train          # Train ML model first
+    python main.py --domain <target_domain> --no-ml          # Skip ML scoring
 """
 
 import argparse
@@ -19,6 +21,9 @@ from scanner.port_scanner import PortScanner
 from crypto.cipher_parser import CipherParser
 from crypto.pqc_classifier import PQCClassifier
 from cbom.cbom_generator import CBOMGenerator
+from ai_ml.risk_scoring_model import RiskScoringModel
+from ai_ml.anomaly_detection import CryptoAnomalyDetector
+from ai_ml.training_data import TrainingDataGenerator
 from utils.logger import setup_logger, get_logger
 
 logger = get_logger(__name__)
@@ -86,6 +91,34 @@ def parse_arguments():
         action="store_true",
         default=False,
         help="Enable verbose output",
+    )
+
+    parser.add_argument(
+        "--train",
+        action="store_true",
+        default=False,
+        help="Train the AI/ML risk scoring model before scanning",
+    )
+
+    parser.add_argument(
+        "--model-path",
+        type=str,
+        default=None,
+        help="Path to a pre-trained ML model file (default: ai_ml/models/risk_model.joblib)",
+    )
+
+    parser.add_argument(
+        "--no-ml",
+        action="store_true",
+        default=False,
+        help="Skip AI/ML risk scoring (use rule-based scoring only)",
+    )
+
+    parser.add_argument(
+        "--synthetic-samples",
+        type=int,
+        default=1500,
+        help="Number of synthetic samples for training (default: 1500)",
     )
 
     return parser.parse_args()
@@ -193,6 +226,70 @@ def run_pipeline(args):
         risk = classified.get("quantum_risk_level", "UNKNOWN")
         logger.info(f"  ✓ {classified['host']}:{classified['port']} — PQC: {status} | Risk: {risk}")
 
+    # ─── Phase 4.5: AI/ML Risk Scoring & Anomaly Detection ──────
+    if not args.no_ml:
+        logger.info(f"[Phase 4.5] Running AI/ML analysis")
+
+        # Train model if requested
+        risk_model = RiskScoringModel(model_path=args.model_path)
+        anomaly_detector = CryptoAnomalyDetector()
+
+        if args.train or not risk_model.is_trained:
+            logger.info(f"  → Training ML model on {args.synthetic_samples} synthetic samples...")
+            data_gen = TrainingDataGenerator()
+            data_gen.generate_synthetic(num_samples=args.synthetic_samples)
+
+            # Also include real scan results if available
+            if parsed_results:
+                data_gen.from_scan_results(parsed_results)
+
+            X, y = data_gen.get_numpy_data()
+            metrics = risk_model.train(X, y)
+            risk_model.save_model()
+            logger.info(f"  ✓ Model trained — RMSE: {metrics['rmse']}, MAE: {metrics['mae']}, R²: {metrics['r2']}")
+
+            # Export training data for reference
+            training_output = os.path.join(output_dir, "training_data.csv")
+            data_gen.export(training_output, format="csv")
+            logger.info(f"  ✓ Training data exported to: {training_output}")
+
+            # Fit anomaly detector on the synthetic normal data
+            anomaly_detector.fit(parsed_results if parsed_results else [])
+            if anomaly_detector.is_fitted:
+                anomaly_detector.save_model()
+
+        # Run ML predictions and anomaly detection on parsed results
+        for result in parsed_results:
+            # ML risk score
+            ml_score = risk_model.predict(result)
+            result["ml_risk_score"] = ml_score
+
+            # Blend rule-based and ML scores (weighted average)
+            rule_score = result.get("quantum_risk_score", 50.0)
+            blended = round(0.4 * rule_score + 0.6 * ml_score, 1)
+            result["blended_risk_score"] = blended
+
+            # Anomaly detection
+            anomaly = anomaly_detector.detect(result)
+            result["anomaly_detection"] = anomaly
+
+            host = result.get('host', '?')
+            port = result.get('port', '?')
+            anomaly_flag = " ⚠ ANOMALY" if anomaly["is_anomaly"] else ""
+            logger.info(
+                f"  ✓ {host}:{port} — Rule: {rule_score} | ML: {ml_score} | Blended: {blended}{anomaly_flag}"
+            )
+
+        # Feature importance
+        importance = risk_model.get_feature_importance()
+        if importance:
+            importance_output = os.path.join(output_dir, "feature_importance.json")
+            with open(importance_output, "w") as f:
+                json.dump(importance, f, indent=2)
+            logger.info(f"  ✓ Feature importance saved to: {importance_output}")
+    else:
+        logger.info(f"[Phase 4.5] Skipping AI/ML analysis (--no-ml flag)")
+
     # ─── Phase 5: CBOM Generation ───────────────────────────────
     if args.cbom or True:  # Always generate CBOM
         logger.info(f"[Phase 5] Generating Cryptographic Bill of Materials (CBOM)")
@@ -237,6 +334,17 @@ def run_pipeline(args):
 
     pqc_ready = sum(1 for r in parsed_results if r.get("pqc_status") == "PQC_READY")
     print(f"\n  PQC Ready:       {pqc_ready}/{len(parsed_results)}")
+
+    # AI/ML summary
+    if not args.no_ml and parsed_results:
+        anomalies = sum(1 for r in parsed_results if r.get("anomaly_detection", {}).get("is_anomaly"))
+        avg_ml = sum(r.get("ml_risk_score", 0) for r in parsed_results) / len(parsed_results)
+        avg_blended = sum(r.get("blended_risk_score", 0) for r in parsed_results) / len(parsed_results)
+        print(f"\n  AI/ML Insights:")
+        print(f"    Avg ML Score:    {avg_ml:.1f}")
+        print(f"    Avg Blended:     {avg_blended:.1f}")
+        print(f"    Anomalies:       {anomalies}/{len(parsed_results)}")
+
     print("=" * 60 + "\n")
 
 
