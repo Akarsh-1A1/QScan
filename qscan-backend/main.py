@@ -311,20 +311,14 @@ def get_scan_results(scan_id: str):
     }
 
 
-@app.get("/api/v1/scan/{scan_id}/cbom", response_model=CbomResponse)
+@app.get("/api/v1/scan/{scan_id}/cbom")
 def get_cbom(scan_id: str):
 
     record = _get_record(scan_id)
 
     _require_completed(record)
 
-    cbom = record["cbom"] or {}
-
-    return {
-        "metadata": cbom.get("metadata"),
-        "summary": cbom.get("summary"),
-        "crypto_assets": cbom.get("crypto_assets"),
-    }
+    return record["cbom"]
 
 
 @app.get("/api/v1/history", response_model=list[HistoryItem])

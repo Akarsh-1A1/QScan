@@ -179,6 +179,7 @@ class CipherParser:
                 analysis["key_exchange"] = info.copy()
                 if pattern in ("ECDHE", "DHE"):
                     analysis["forward_secrecy"] = True
+                    analysis["quantum_safe_components"].append("Forward Secrecy")
                 if not info["quantum_safe"]:
                     analysis["quantum_vulnerable_components"].append(
                         f"Key Exchange ({info['algorithm']})"
@@ -193,15 +194,32 @@ class CipherParser:
         for pattern, info in self.enc_patterns.items():
             if pattern in normalized:
                 analysis["encryption"] = info.copy()
-                if info["quantum_safe"]:
+
+                if info["algorithm"] in ("3DES", "DES", "RC4"):
+                    analysis["quantum_vulnerable_components"].append(
+                        f"Weak Cipher ({info['algorithm']})"
+                    )
+
+                elif info["bits"] and info["bits"] < 128:
+                    analysis["quantum_vulnerable_components"].append(
+                        f"Weak Encryption ({info['algorithm']})"
+                    )
+
+                elif info["quantum_safe"]:
                     analysis["quantum_safe_components"].append(info["algorithm"])
+
                 else:
                     analysis["quantum_vulnerable_components"].append(info["algorithm"])
+
                 break
 
         # Authentication (after KEX, check for auth-specific patterns)
         for pattern, info in self.auth_patterns.items():
-            auth_check = f"_{pattern}_" in normalized or normalized.endswith(f"_{pattern}")
+            auth_check = (
+                f"_{pattern}_" in normalized
+                or normalized.endswith(f"_{pattern}")
+                or normalized.startswith(pattern)
+            )
             if auth_check and pattern != analysis.get("key_exchange", {}).get("algorithm"):
                 analysis["authentication"] = info.copy()
                 if not info["quantum_safe"]:
@@ -281,10 +299,29 @@ class CipherParser:
             "deprecated_protocols": [],
             "weak_ciphers": [],
             "strong_ciphers": [],
+            "cipher_diversity": 0
         }
 
         # From cipher analysis
         cipher_analysis = result.get("cipher_analysis", {})
+        all_ciphers = result.get("all_cipher_analysis", [])
+
+        summary["cipher_diversity"] = len(all_ciphers)
+
+        for c in all_ciphers:
+            enc = c.get("encryption", {})
+            if enc:
+                bits = enc.get("bits", 0)
+                alg = enc.get("algorithm")
+
+                if bits and bits < 128:
+                    if alg and alg not in summary["weak_ciphers"]:
+                        summary["weak_ciphers"].append(alg)
+
+                elif bits >= 256:
+                    if alg and alg not in summary["strong_ciphers"]:
+                        summary["strong_ciphers"].append(alg)
+
         if cipher_analysis:
             summary["total_quantum_vulnerable"] = len(
                 cipher_analysis.get("quantum_vulnerable_components", [])
@@ -294,7 +331,6 @@ class CipherParser:
             )
             summary["forward_secrecy"] = cipher_analysis.get("forward_secrecy", False)
 
-        # Check supported protocols
         for proto in result.get("supported_protocols", []):
             if proto in ("SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1"):
                 summary["deprecated_protocols"].append(proto)

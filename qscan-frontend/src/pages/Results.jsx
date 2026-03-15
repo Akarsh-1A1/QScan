@@ -45,10 +45,6 @@ function Results() {
 
   const asset = cbom.crypto_assets?.[0];
 
-  /* -------------------------------
-     Quantum Readiness Score
-  --------------------------------*/
-
   const readinessScore = calculateQuantumReadinessScore(cbom);
 
   const readinessLabel =
@@ -70,17 +66,12 @@ function Results() {
       <div className="container" style={{ padding: "3rem 0" }}>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
 
-          {/* HEADER */}
           <div className="dashboard-header">
             <h2>{cbom.metadata?.organization_domain}</h2>
             <p style={{ color: "var(--text-muted)" }}>
               Scan ID: {scanId}
             </p>
           </div>
-
-          {/* ------------------------------
-              QUANTUM READINESS GAUGE
-          ------------------------------- */}
 
           <div
             className="card"
@@ -107,7 +98,6 @@ function Results() {
             </p>
           </div>
 
-          {/* SUMMARY */}
           <div className="metric-grid">
 
             <div className="metric-card">
@@ -145,7 +135,6 @@ function Results() {
 
           </div>
 
-          {/* ASSET TABLE */}
           <div className="table-wrapper">
             <table>
               <thead>
@@ -194,7 +183,40 @@ function Results() {
             </table>
           </div>
 
-          {/* QUANTUM THREAT PANEL */}
+          {/* -------------------------
+              RISK MATRIX (NEW)
+          -------------------------- */}
+
+          {cbom.risk_matrix && cbom.risk_matrix.length > 0 && (
+            <div className="card" style={{ marginTop: "2rem" }}>
+              <h3>Risk Matrix</h3>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Host</th>
+                    <th>Port</th>
+                    <th>Risk Score</th>
+                    <th>PQC Status</th>
+                    <th>Deadline</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {cbom.risk_matrix.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.host}</td>
+                      <td>{r.port}</td>
+                      <td>{r.risk_score}</td>
+                      <td>{r.pqc_status}</td>
+                      <td>{r.migration_deadline}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {asset && (
             <div className="card" style={{ marginTop: "2rem" }}>
               <h3>Quantum Threat Assessment</h3>
@@ -216,7 +238,6 @@ function Results() {
             </div>
           )}
 
-          {/* CERTIFICATE INFO */}
           {asset?.formattedCert && (
             <div className="card" style={{ marginTop: "2rem" }}>
               <h3>Certificate Information</h3>
@@ -248,7 +269,6 @@ function Results() {
             </div>
           )}
 
-          {/* RECOMMENDATIONS */}
           {asset?.recommendations && (
             <div className="card" style={{ marginTop: "2rem" }}>
               <h3>Post-Quantum Migration Recommendations</h3>
@@ -277,7 +297,34 @@ function Results() {
             </div>
           )}
 
-          {/* RAW JSON */}
+          {/* -------------------------
+              PQC MIGRATION PLAN (NEW)
+          -------------------------- */}
+
+          {cbom.pqc_migration_plan && (
+            <div className="card" style={{ marginTop: "2rem" }}>
+              <h3>PQC Migration Plan</h3>
+
+              {cbom.pqc_migration_plan.immediate_actions?.map((a, i) => (
+                <p key={i}>
+                  {a.host}:{a.port} → {a.component}
+                </p>
+              ))}
+
+              {cbom.pqc_migration_plan.short_term_actions?.map((a, i) => (
+                <p key={i}>
+                  {a.host}:{a.port} → {a.component}
+                </p>
+              ))}
+
+              {cbom.pqc_migration_plan.planned_actions?.map((a, i) => (
+                <p key={i}>
+                  {a.host}:{a.port} → {a.component}
+                </p>
+              ))}
+            </div>
+          )}
+
           <details style={{ marginTop: "2rem" }}>
             <summary>Raw CBOM Data</summary>
             <pre>
