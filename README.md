@@ -37,7 +37,7 @@
 
 ## 🚀 Overview
 
-**QScan** is a full-stack Quantum Readiness Assessment Platform built for the **PNB Cybersecurity Hackathon 2025**. It provides an end-to-end pipeline to:
+**QScan** is a full-stack Quantum Readiness Assessment Platform built for the **PNB Cybersecurity Hackathon 2026**. It provides an end-to-end pipeline to:
 
 - 🔍 **Discover** public-facing banking assets (subdomains, APIs, VPN endpoints) via DNS enumeration & certificate transparency
 - 🔐 **Analyze** TLS/cryptographic configurations with deep cipher suite inspection
@@ -380,7 +380,7 @@ Each asset receives:
 
 ## 📄 License
 
-This project is developed for the **PNB Cybersecurity Hackathon 2025**.
+This project is developed for the **PNB Cybersecurity Hackathon 2026**.
 
 ---
 
