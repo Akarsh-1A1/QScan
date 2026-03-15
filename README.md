@@ -188,6 +188,63 @@ pip install -e .
 
 ### 2. Set Up Backend (FastAPI + Redis)
 
+## 🧰 Redis Installation
+
+QScan's backend requires **Redis** for caching, scan queue management, and storing scan results.  
+Install Redis using the instructions below depending on your operating system.
+
+---
+
+### Linux (Ubuntu / Debian)
+
+Install Redis
+
+    sudo apt update
+    sudo apt install redis-server -y
+
+Start Redis
+
+    sudo systemctl start redis
+    sudo systemctl enable redis
+
+Verify Redis
+
+    redis-cli ping
+---
+
+### Windows (Docker Method)
+
+Install Docker Desktop first if not installed:  
+https://www.docker.com/products/docker-desktop/
+
+Run Redis container
+
+    docker run -d -p 6379:6379 --name qscan-redis redis:7
+
+Verify Redis is running
+
+    docker ps
+
+You should see a container named **qscan-redis**.
+
+Test Redis
+
+    docker exec -it qscan-redis redis-cli ping
+
+---
+
+### ⚠️ Important
+
+Before starting the backend server, **make sure Redis is running**.
+
+Linux:
+
+    sudo systemctl start redis
+
+Docker (Windows):
+
+    docker start qscan-redis
+
 ```bash
 cd qscan-backend
 
