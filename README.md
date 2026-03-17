@@ -9,7 +9,7 @@
 # QScan — Quantum Readiness Assessment Platform
 
 <p align="center">
-  <b>🛡️ QShield's Automated PQC Scanner for Banking Infrastructure</b>
+  <b>🛡️ QScan Automated PQC Scanner for Banking Infrastructure</b>
 </p>
 
 > Evaluate the cryptographic security of banking systems and assess readiness for Post-Quantum Cryptography (PQC) — powered by AI/ML risk scoring, anomaly detection, and NIST-standardized migration advisories.
