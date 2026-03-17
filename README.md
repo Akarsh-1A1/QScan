@@ -441,7 +441,7 @@ This project is developed for the **PNB Cybersecurity Hackathon 2026**.
 
 ---
 
-## 👥 Team — QShield
+## 👥 Team — CacheMe
 
 | Member | GitHub |
 |---|---|
