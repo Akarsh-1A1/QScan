@@ -153,7 +153,7 @@ class VPNScanner:
     IKE_PORTS = [500, 4500]
     OPENVPN_UDP_PORTS = [1194]
     OPENVPN_TCP_PORTS = [1194, 443]
-    SSL_VPN_PORTS = [443, 8443, 4433, 10443]
+    SSL_VPN_PORTS = [8443, 4433, 10443]
     WIREGUARD_PORTS = [51820]
 
     def __init__(self, settings: Settings):
