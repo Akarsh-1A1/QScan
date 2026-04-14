@@ -14,6 +14,7 @@ function NewScan() {
     'certificate_validation'
   ]);
   const [discover, setDiscover] = useState(false);
+  const [vpn, setVpn] = useState(false);
   const navigate = useNavigate();
 
   const { scanId, loading: starting, error: startError, startScan } = useStartScan();
@@ -36,7 +37,7 @@ function NewScan() {
     }
 
     try {
-      const id = await startScan(target, scanTypes, discover);
+      const id = await startScan(target, scanTypes, discover, vpn);
       toast.success(`Scan ${id} started!`);
     } catch (err) {
       toast.error(`Failed to start scan: ${err.message}`);
@@ -178,6 +179,17 @@ function NewScan() {
                   onChange={(e) => setDiscover(e.target.checked)}
                 />
                 <label htmlFor="discover">Enable Asset Discovery (subdomain enumeration)</label>
+              </div>
+              <div className="checkbox-item" style={{ marginTop: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  id="vpn"
+                  checked={vpn}
+                  onChange={(e) => setVpn(e.target.checked)}
+                />
+                <label htmlFor="vpn">
+                  Enable VPN Scanning (IKEv2/IPsec, OpenVPN, SSL VPN, WireGuard)
+                </label>
               </div>
             </div>
 

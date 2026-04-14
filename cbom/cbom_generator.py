@@ -19,12 +19,15 @@ class CBOMGenerator:
     CBOM_VERSION = "1.0"
     CBOM_SCHEMA = "https://qscan.github.io/cbom/schema/v1"
 
-    def generate(self, domain: str, scan_results: List[Dict], timestamp: str = None) -> Dict:
+    def generate(self, domain: str, scan_results: List[Dict],
+                 vpn_results: List[Dict] = None,
+                 timestamp: str = None) -> Dict:
 
         timestamp = timestamp or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
         # --- SAFETY FIX ---
         scan_results = [r for r in scan_results if r]
+        vpn_results = [r for r in (vpn_results or []) if r]
 
         cbom = {
             "cbom_version": self.CBOM_VERSION,
@@ -36,11 +39,13 @@ class CBOMGenerator:
                 "tool": "QScan Quantum Readiness Assessment Platform",
                 "tool_version": "1.0.0",
                 "total_assets_scanned": len(scan_results),
+                "total_vpn_endpoints": len(vpn_results),
             },
-            "summary": self._generate_summary(scan_results),
+            "summary": self._generate_summary(scan_results, vpn_results),
             "crypto_assets": [],
+            "vpn_inventory": self._build_vpn_inventory(vpn_results),
             "risk_matrix": self._generate_risk_matrix(scan_results),
-            "pqc_migration_plan": self._generate_migration_plan(scan_results),
+            "pqc_migration_plan": self._generate_migration_plan(scan_results, vpn_results),
         }
 
         for i, result in enumerate(scan_results):
@@ -50,7 +55,10 @@ class CBOMGenerator:
         content_str = json.dumps(cbom, sort_keys=True, default=str)
         cbom["metadata"]["cbom_hash"] = hashlib.sha256(content_str.encode()).hexdigest()
 
-        logger.info(f"CBOM generated: {len(cbom['crypto_assets'])} assets cataloged")
+        logger.info(
+            f"CBOM generated: {len(cbom['crypto_assets'])} TLS assets, "
+            f"{len(vpn_results)} VPN endpoints cataloged"
+        )
 
         return cbom
 
@@ -123,7 +131,7 @@ class CBOMGenerator:
             ],
         }
 
-    def _generate_summary(self, results: List[Dict]) -> Dict:
+    def _generate_summary(self, results: List[Dict], vpn_results: List[Dict] = None) -> Dict:
 
         total = len(results)
 
@@ -173,6 +181,13 @@ class CBOMGenerator:
                 else "PARTIAL" if pqc_counts.get("PQC_READY", 0) > 0
                 else "NOT_READY"
             ),
+            "vpn_endpoints": len(vpn_results or []),
+            "vpn_pqc_ready": sum(
+                1 for v in (vpn_results or []) if v.get("pqc_status") == "PQC_READY"
+            ),
+            "vpn_critical": sum(
+                1 for v in (vpn_results or []) if v.get("quantum_risk_level") == "CRITICAL"
+            ),
         }
 
     def _generate_risk_matrix(self, results: List[Dict]) -> List[Dict]:
@@ -202,7 +217,38 @@ class CBOMGenerator:
 
         return sorted(matrix, key=lambda x: x["risk_score"], reverse=True)
 
-    def _generate_migration_plan(self, results: List[Dict]) -> Dict:
+    def _build_vpn_inventory(self, vpn_results: List[Dict]) -> List[Dict]:
+        """Build a clean VPN inventory list for the CBOM."""
+        inventory = []
+
+        for v in (vpn_results or []):
+            inventory.append({
+                "host": v.get("host"),
+                "port": v.get("port"),
+                "transport": v.get("transport"),
+                "vpn_protocol": v.get("vpn_protocol"),
+                "vpn_product": v.get("vpn_product"),
+                "scan_timestamp": v.get("scan_timestamp"),
+                "tls_version": v.get("tls_version"),
+                "cipher_suite": v.get("cipher_suite"),
+                "cipher_bits": v.get("cipher_bits"),
+                "encryption_algorithms": v.get("encryption_algorithms", []),
+                "prf_algorithms": v.get("prf_algorithms", []),
+                "integrity_algorithms": v.get("integrity_algorithms", []),
+                "dh_groups": v.get("dh_groups", []),
+                "quantum_assessment": {
+                    "pqc_status": v.get("pqc_status", "UNKNOWN"),
+                    "risk_level": v.get("quantum_risk_level", "UNKNOWN"),
+                    "risk_score": v.get("quantum_risk_score", 0),
+                },
+                "notes": v.get("notes", ""),
+                "recommendations": v.get("recommendations", []),
+            })
+
+        return inventory
+
+    def _generate_migration_plan(self, results: List[Dict],
+                                  vpn_results: List[Dict] = None) -> Dict:
 
         immediate, short_term, planned = [], [], []
 
@@ -223,6 +269,22 @@ class CBOMGenerator:
                 elif pri == "HIGH":
                     short_term.append(item)
 
+                else:
+                    planned.append(item)
+
+        # Include VPN recommendations
+        for v in (vpn_results or []):
+            host = v.get("host", "unknown")
+            port = v.get("port", 0)
+
+            for rec in v.get("recommendations") or []:
+                item = {"host": host, "port": port, "asset_type": "VPN", **rec}
+                pri = rec.get("priority", "MEDIUM")
+
+                if pri == "CRITICAL":
+                    immediate.append(item)
+                elif pri == "HIGH":
+                    short_term.append(item)
                 else:
                     planned.append(item)
 

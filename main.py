@@ -17,6 +17,7 @@ from config.settings import Settings
 from scanner.asset_discovery import AssetDiscovery
 from scanner.tls_scanner import TLSScanner
 from scanner.port_scanner import PortScanner
+from scanner.vpn_scanner import VPNScanner
 from crypto.cipher_parser import CipherParser
 from crypto.pqc_classifier import PQCClassifier
 from crypto.hndl_simulator import compute_hndl_risk
@@ -46,6 +47,8 @@ def parse_arguments():
     parser.add_argument("--timeout", type=int, default=10)
     parser.add_argument("--threads", type=int, default=10)
     parser.add_argument("--verbose", action="store_true", default=False)
+    parser.add_argument("--vpn", action="store_true", default=False,
+                        help="Run VPN endpoint scanning (IKEv2, OpenVPN, SSL VPN, WireGuard)")
 
     return parser.parse_args()
 
@@ -143,6 +146,43 @@ def run_pipeline(args):
 
             except Exception as e:
                 logger.warning(f"Port scan failed for {target}: {e}")
+
+    # ─────────────────────────────────────────────
+    # Phase 2.5 — VPN Scanning (PARALLEL)
+    # ─────────────────────────────────────────────
+
+    all_vpn_results = []
+
+    if args.vpn:
+        logger.info(f"[Phase 2.5] Scanning VPN endpoints on {len(targets)} target(s)")
+
+        vpn_scanner = VPNScanner(settings)
+
+        with ThreadPoolExecutor(max_workers=settings.max_threads) as executor:
+            vpn_future_map = {
+                executor.submit(vpn_scanner.scan, target): target
+                for target in targets
+            }
+
+            for future in as_completed(vpn_future_map):
+                target = vpn_future_map[future]
+                try:
+                    vpn_endpoints = future.result()
+                    if vpn_endpoints:
+                        all_vpn_results.extend(vpn_endpoints)
+                        logger.info(
+                            f"  ✓ VPN {target}: {len(vpn_endpoints)} endpoint(s)"
+                        )
+                except Exception as e:
+                    logger.warning(f"VPN scan failed for {target}: {e}")
+
+        with open(os.path.join(output_dir, "vpn_results.json"), "w") as f:
+            json.dump(all_vpn_results, f, indent=2, default=str)
+
+        logger.info(f"  ✓ VPN results saved ({len(all_vpn_results)} endpoint(s))")
+
+    else:
+        logger.info("[Phase 2.5] Skipping VPN scan (use --vpn to enable)")
 
     # ─────────────────────────────────────────────
     # Phase 3 — TLS Scanning (PARALLEL)
@@ -305,6 +345,7 @@ def run_pipeline(args):
     cbom = cbom_generator.generate(
         domain=domain,
         scan_results=parsed_results,
+        vpn_results=all_vpn_results,
         timestamp=timestamp,
     )
 
@@ -347,6 +388,13 @@ def run_pipeline(args):
     pqc_ready = sum(1 for r in parsed_results if r.get("pqc_status") == "PQC_READY")
 
     print(f"\nPQC Ready: {pqc_ready}/{len(parsed_results)}")
+
+    if all_vpn_results:
+        print(f"\nVPN Endpoints Found: {len(all_vpn_results)}")
+        vpn_critical = sum(1 for v in all_vpn_results if v.get("quantum_risk_level") == "CRITICAL")
+        vpn_pqc_ready = sum(1 for v in all_vpn_results if v.get("pqc_status") == "PQC_READY")
+        print(f"VPN Critical Risk:   {vpn_critical}")
+        print(f"VPN PQC Ready:       {vpn_pqc_ready}/{len(all_vpn_results)}")
 
     print("=" * 60 + "\n")
 

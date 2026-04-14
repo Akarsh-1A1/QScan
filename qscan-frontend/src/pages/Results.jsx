@@ -31,7 +31,7 @@ function Results() {
   const { scanId } = useParams();
 
   /* ML branch added scanResults */
-  const { cbom, scanResults, loading, error } = useScanResults(scanId);
+  const { cbom, scanResults, vpnResults, loading, error } = useScanResults(scanId);
 
   // Track HNDL data for charts + PDF
   const [hndlData, setHndlData] = useState(null);
@@ -413,6 +413,163 @@ function Results() {
               ))}
             </div>
           )}
+          {/* ─── VPN Inventory Section ─── */}
+          {vpnResults && vpnResults.vpn_inventory && vpnResults.vpn_inventory.length > 0 && (
+            <div className="card" style={{ marginTop: "2rem" }}>
+              <h3>🔒 VPN Endpoint Inventory</h3>
+              <p style={{ color: "var(--text-muted)", marginBottom: "1rem" }}>
+                {vpnResults.vpn_endpoints_found} VPN endpoint(s) discovered across public-facing infrastructure.
+              </p>
+
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Host</th>
+                      <th>Port / Protocol</th>
+                      <th>VPN Type</th>
+                      <th>TLS / Cipher</th>
+                      <th>Key Exchange / DH</th>
+                      <th>PQC Status</th>
+                      <th>Risk</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {vpnResults.vpn_inventory.map((vpn, idx) => {
+                      const riskColor =
+                        vpn.quantum_assessment?.risk_level === "CRITICAL" ? "red" :
+                        vpn.quantum_assessment?.risk_level === "HIGH" ? "orange" :
+                        vpn.quantum_assessment?.risk_level === "MEDIUM" ? "gold" :
+                        vpn.quantum_assessment?.risk_level === "LOW" ? "yellowgreen" :
+                        "var(--accent-safe)";
+
+                      const pqcColor =
+                        vpn.quantum_assessment?.pqc_status === "PQC_READY" ? "var(--accent-safe)" :
+                        vpn.quantum_assessment?.pqc_status === "HYBRID_PQC" ? "gold" :
+                        vpn.quantum_assessment?.pqc_status === "CRITICAL" ? "red" :
+                        "orange";
+
+                      return (
+                        <tr key={idx}>
+                          <td><code>{vpn.host}</code></td>
+                          <td>
+                            <code>{vpn.port}</code>
+                            <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginLeft: "0.3rem" }}>
+                              {vpn.transport}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ fontWeight: "600" }}>{vpn.vpn_protocol}</span>
+                            {vpn.vpn_product && vpn.vpn_product !== vpn.vpn_protocol && (
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                                {vpn.vpn_product}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <code style={{ fontSize: "0.8rem" }}>
+                              {vpn.tls_version || "N/A"}
+                            </code>
+                            {vpn.cipher_suite && (
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                                {vpn.cipher_suite}
+                              </div>
+                            )}
+                            {vpn.encryption_algorithms?.length > 0 && !vpn.cipher_suite && (
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                                {vpn.encryption_algorithms.join(", ")}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ fontSize: "0.8rem" }}>
+                            {vpn.dh_groups?.length > 0
+                              ? vpn.dh_groups.join(", ")
+                              : "—"}
+                          </td>
+                          <td>
+                            <span style={{
+                              padding: "0.2rem 0.6rem",
+                              borderRadius: "4px",
+                              background: pqcColor + "22",
+                              color: pqcColor,
+                              fontWeight: "600",
+                              fontSize: "0.8rem",
+                            }}>
+                              {vpn.quantum_assessment?.pqc_status || "UNKNOWN"}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{
+                              padding: "0.2rem 0.6rem",
+                              borderRadius: "4px",
+                              background: riskColor + "22",
+                              color: riskColor,
+                              fontWeight: "600",
+                              fontSize: "0.8rem",
+                            }}>
+                              {vpn.quantum_assessment?.risk_level || "UNKNOWN"}
+                            </span>
+                            <div style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                              Score: {vpn.quantum_assessment?.risk_score ?? "—"}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* VPN Recommendations */}
+              {vpnResults.vpn_inventory.some(v => v.recommendations?.length > 0) && (
+                <div style={{ marginTop: "1.5rem" }}>
+                  <h4>VPN Post-Quantum Migration Recommendations</h4>
+                  {vpnResults.vpn_inventory.map((vpn, vpnIdx) =>
+                    (vpn.recommendations || []).map((rec, recIdx) => (
+                      <div key={`${vpnIdx}-${recIdx}`} style={{
+                        background: "var(--surface)",
+                        borderRadius: "8px",
+                        padding: "0.8rem 1rem",
+                        marginBottom: "0.8rem",
+                        borderLeft: `4px solid ${rec.priority === "CRITICAL" ? "red" : rec.priority === "HIGH" ? "orange" : "gold"}`,
+                      }}>
+                        <div style={{ fontWeight: "600", marginBottom: "0.3rem" }}>
+                          <code>{vpn.host}:{vpn.port}</code> — {rec.component}
+                          <span style={{
+                            marginLeft: "0.5rem",
+                            padding: "0.1rem 0.4rem",
+                            borderRadius: "3px",
+                            background: rec.priority === "CRITICAL" ? "#ff000022" : rec.priority === "HIGH" ? "#ff800022" : "#ffd70022",
+                            color: rec.priority === "CRITICAL" ? "red" : rec.priority === "HIGH" ? "orange" : "gold",
+                            fontSize: "0.75rem",
+                          }}>
+                            {rec.priority}
+                          </span>
+                        </div>
+                        <p style={{ margin: "0.2rem 0", fontSize: "0.85rem" }}>
+                          Current: <code>{rec.current}</code> → Recommended: <code>{rec.recommended}</code>
+                        </p>
+                        {rec.hybrid_option && (
+                          <p style={{ margin: "0.2rem 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                            Hybrid: <code>{rec.hybrid_option}</code>
+                          </p>
+                        )}
+                        {rec.nist_standard && (
+                          <p style={{ margin: "0.2rem 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                            NIST: {rec.nist_standard}
+                          </p>
+                        )}
+                        <p style={{ margin: "0.3rem 0 0", fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                          {rec.rationale}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ─── Analytics Charts Section ─── */}
           <div className="charts-section">
             <div className="charts-section-title">

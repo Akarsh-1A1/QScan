@@ -159,6 +159,7 @@ class StartScanRequest(BaseModel):
     target: str
     scan_types: list[str] = []
     discover: bool = False
+    vpn: bool = False
     ports: Optional[list[int]] = None
 
 
@@ -189,8 +190,16 @@ class CbomResponse(BaseModel):
     metadata: Optional[dict]
     summary: Optional[dict]
     crypto_assets: Optional[list]
+    vpn_inventory: Optional[list]
     risk_matrix: Optional[list]
     pqc_migration_plan: Optional[dict]
+
+
+class VPNResultsResponse(BaseModel):
+    scan_id: str
+    target: str
+    vpn_inventory: Optional[list]
+    vpn_endpoints_found: int
 
 
 
@@ -233,7 +242,7 @@ def _read_json(path: str) -> Any:
 # Scan worker
 # -----------------------------------------------------------
 
-def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports: list[int] | None):
+def _run_qscan(scan_id: str, target: str, discover: bool, vpn: bool, output_dir: str, ports: list[int] | None):
 
     r = _sync_redis()
 
@@ -252,6 +261,7 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
         "risk_score": None,
         "ML_risk_score": None,
         "anomaly_detection": None,
+        "vpn_results": None,
     }
 
     _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -261,6 +271,9 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
 
     if discover:
         cmd.append("--discover")
+
+    if vpn:
+        cmd.append("--vpn")
 
     if ports:
         cmd.extend(["--ports", ",".join(str(p) for p in ports)])
@@ -295,9 +308,11 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
         cbom = _read_json(os.path.join(output_dir, "cbom.json"))
         results = _read_json(os.path.join(output_dir, "scan_results.json"))
         assets = _read_json(os.path.join(output_dir, "discovered_assets.json"))
+        vpn_data = _read_json(os.path.join(output_dir, "vpn_results.json"))
 
         record["cbom"] = cbom
         record["scan_results"] = results if isinstance(results, list) else [results]
+        record["vpn_results"] = vpn_data if isinstance(vpn_data, list) else []
         record["assets_data"] = assets
 
         if record["scan_results"]:
@@ -356,9 +371,9 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
         r.close()
 
 
-async def _run_qscan_async(scan_id: str, target: str, discover: bool, output_dir: str, ports):
+async def _run_qscan_async(scan_id: str, target: str, discover: bool, vpn: bool, output_dir: str, ports):
 
-    await asyncio.to_thread(_run_qscan, scan_id, target, discover, output_dir, ports)
+    await asyncio.to_thread(_run_qscan, scan_id, target, discover, vpn, output_dir, ports)
 
 
 # -----------------------------------------------------------
@@ -379,6 +394,7 @@ async def start_scan(body: StartScanRequest, background_tasks: BackgroundTasks):
     output_dir = tempfile.mkdtemp(prefix=f"qscan_{scan_id}_")
 
     discover = body.discover or ("discover" in body.scan_types)
+    vpn = body.vpn or ("vpn" in body.scan_types)
 
     record = {
         "scan_id": scan_id,
@@ -393,6 +409,7 @@ async def start_scan(body: StartScanRequest, background_tasks: BackgroundTasks):
         "assets_data": None,
         "assets_found": 0,
         "risk_score": None,
+        "vpn_results": None,
     }
 
     await _async_redis.set(_scan_key(scan_id), _serialize(record))
@@ -402,6 +419,7 @@ async def start_scan(body: StartScanRequest, background_tasks: BackgroundTasks):
         scan_id,
         body.target,
         discover,
+        vpn,
         output_dir,
         body.ports,
     )
@@ -465,8 +483,39 @@ async def get_cbom(scan_id: str):
         "metadata": cbom.get("metadata"),
         "summary": cbom.get("summary"),
         "crypto_assets": cbom.get("crypto_assets"),
+        "vpn_inventory": cbom.get("vpn_inventory"),
         "risk_matrix": cbom.get("risk_matrix"),
         "pqc_migration_plan": cbom.get("pqc_migration_plan"),
+    }
+
+
+@app.get("/api/v1/scan/{scan_id}/vpn", response_model=VPNResultsResponse)
+async def get_vpn_results(scan_id: str):
+    """
+    Get VPN endpoint scan results for a completed scan.
+
+    Returns the VPN inventory with per-endpoint cryptographic details
+    and PQC readiness assessment.
+    """
+    record = await _aget_record(scan_id)
+
+    if record["status"] != ScanStatus.COMPLETED:
+        raise HTTPException(
+            status_code=409,
+            detail="Scan not completed yet",
+        )
+
+    vpn_inventory = record.get("vpn_results") or []
+    # Also pull from CBOM if direct results not stored
+    if not vpn_inventory:
+        cbom = record.get("cbom") or {}
+        vpn_inventory = cbom.get("vpn_inventory") or []
+
+    return {
+        "scan_id": scan_id,
+        "target": record["target"],
+        "vpn_inventory": vpn_inventory,
+        "vpn_endpoints_found": len(vpn_inventory),
     }
 
 

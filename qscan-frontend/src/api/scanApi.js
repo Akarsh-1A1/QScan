@@ -26,11 +26,12 @@ api.interceptors.response.use(
 
 // Scan API endpoints
 export const scanApi = {
-  startScan: (target, scanTypes, discover = false, ports = null) =>
+  startScan: (target, scanTypes, discover = false, ports = null, vpn = false) =>
     api.post('/api/v1/scan', {
       target,
       scan_types: scanTypes,
       discover,
+      vpn,
       ports,
       depth: 'standard',
     }),
@@ -50,6 +51,9 @@ export const scanApi = {
       migration_years: migrationYears,
       data_life_years: dataLifeYears,
     }),
+
+  getVPNResults: (scanId) =>
+    api.get(`/api/v1/scan/${scanId}/vpn`),
 
   getHistory: () =>
     api.get('/api/v1/history'),

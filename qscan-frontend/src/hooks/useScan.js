@@ -59,6 +59,7 @@ export const useScanResults = (scanId) => {
 
   const [results, setResults] = useState(null);
   const [cbom, setCBOM] = useState(null);
+  const [vpnResults, setVpnResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -81,6 +82,14 @@ export const useScanResults = (scanId) => {
 
       setCBOM(formatted);
 
+      // Fetch VPN results (optional — may be empty if --vpn not used)
+      try {
+        const vpnRes = await scanApi.getVPNResults(scanId);
+        setVpnResults(vpnRes.data);
+      } catch (_) {
+        setVpnResults(null);
+      }
+
     } catch (err) {
 
       setError(err.message);
@@ -101,6 +110,7 @@ export const useScanResults = (scanId) => {
   return {
   results,
   cbom,
+  vpnResults,
   scanResults: results?.scan_results || [],
   loading,
   error,
@@ -115,14 +125,14 @@ export const useStartScan = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const startScan = useCallback(async (target, scanTypes = [], discover = false) => {
+  const startScan = useCallback(async (target, scanTypes = [], discover = false, vpn = false) => {
 
     setLoading(true);
     setError(null);
 
     try {
 
-      const response = await scanApi.startScan(target, scanTypes, discover);
+      const response = await scanApi.startScan(target, scanTypes, discover, null, vpn);
 
       setScanId(response.data.scan_id);
 
