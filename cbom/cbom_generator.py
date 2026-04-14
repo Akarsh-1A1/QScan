@@ -86,6 +86,8 @@ class CBOMGenerator:
                 "threat_assessment": result.get("quantum_threat_assessment") or {},
             },
 
+            "hndl_risk": result.get("hndl_risk") or {},
+
             "recommendations": result.get("pqc_recommendations") or [],
         }
 

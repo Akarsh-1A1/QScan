@@ -44,6 +44,13 @@ export const scanApi = {
   getCBOM: (scanId) =>
     api.get(`/api/v1/scan/${scanId}/cbom`),
 
+  getHNDLRisk: (scanId, migrationYears = 3, dataLifeYears = 7) =>
+    api.post('/api/v1/hndl-risk', {
+      scan_id: scanId,
+      migration_years: migrationYears,
+      data_life_years: dataLifeYears,
+    }),
+
   getHistory: () =>
     api.get('/api/v1/history'),
 

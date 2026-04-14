@@ -19,6 +19,7 @@ from scanner.tls_scanner import TLSScanner
 from scanner.port_scanner import PortScanner
 from crypto.cipher_parser import CipherParser
 from crypto.pqc_classifier import PQCClassifier
+from crypto.hndl_simulator import compute_hndl_risk
 from cbom.cbom_generator import CBOMGenerator
 from utils.logger import setup_logger, get_logger
 
@@ -272,6 +273,10 @@ def run_pipeline(args):
 
             anomaly = anomaly_detector.detect(classified)
             classified["anomaly_detection"] = anomaly
+
+            # Compute HNDL Mosca Inequality Risk
+            hndl_risk = compute_hndl_risk(classified)
+            classified["hndl_risk"] = hndl_risk
 
             parsed_results.append(classified)
 

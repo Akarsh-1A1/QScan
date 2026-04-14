@@ -1,0 +1,397 @@
+/* HNDL Risk Panel Styles */
+
+.hndl-panel {
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 24px rgba(15, 253, 209, 0.1);
+}
+
+.hndl-header {
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--accent-teal);
+  padding-bottom: 1rem;
+}
+
+.hndl-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hndl-header .subtitle {
+  margin: 0.5rem 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+/* Status Badge Section */
+.hndl-status {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(15, 253, 209, 0.05);
+  border-left: 4px solid var(--accent-teal);
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.status-badge {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.urgency-label {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* Equation Display */
+.hndl-equation {
+  margin-bottom: 1.5rem;
+}
+
+.hndl-equation h4 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.equation-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.5rem;
+  background: rgba(5, 11, 24, 0.5);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.equation-term {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.equation-term .label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.equation-term .value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--accent-teal);
+  padding: 0.5rem 1rem;
+  background: rgba(15, 253, 209, 0.1);
+  border-radius: 6px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.operator {
+  font-size: 1.5rem;
+  color: var(--accent-teal);
+  font-weight: bold;
+}
+
+.equation-note {
+  margin: 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.equation-note small {
+  display: block;
+  color: var(--text-muted);
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+/* Breach Window */
+.hndl-breach-window {
+  margin-bottom: 1.5rem;
+}
+
+.hndl-breach-window h4 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.breach-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(5, 11, 24, 0.5);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-teal);
+}
+
+.info-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.info-value {
+  font-weight: bold;
+  font-size: 1.1rem;
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Risk Metrics */
+.hndl-risk-metrics {
+  margin-bottom: 1.5rem;
+}
+
+.hndl-risk-metrics h4 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.hndl-risk-metrics .metric {
+  padding: 1.5rem;
+  background: rgba(15, 253, 209, 0.05);
+  border: 1px solid var(--accent-teal);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.hndl-risk-metrics .metric .metric-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.hndl-risk-metrics .metric .metric-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--accent-teal);
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Controls Section */
+.hndl-controls {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(5, 11, 24, 0.5);
+  border: 1px dashed var(--accent-teal);
+}
+
+.hndl-controls h4 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.slider-group {
+  margin-bottom: 1.5rem;
+}
+
+.slider-group:last-child {
+  margin-bottom: 0;
+}
+
+.slider-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.slider-group label strong {
+  color: var(--accent-teal);
+  margin-left: 0.5rem;
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--accent-red) 0%, var(--accent-orange) 50%, var(--accent-safe) 100%);
+  outline: none;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(15, 253, 209, 0.5);
+  border: 2px solid var(--card-bg);
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(15, 253, 209, 0.5);
+  border: 2px solid var(--card-bg);
+}
+
+.slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.slider-group small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* Recommendation */
+.hndl-recommendation {
+  padding: 1.5rem;
+  border-left: 4px solid var(--accent-teal);
+  background: rgba(15, 253, 209, 0.03);
+  border-radius: 8px;
+  margin-bottom: 0;
+}
+
+.hndl-recommendation h4 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.recommendation-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Error State */
+.hndl-error {
+  padding: 1.5rem;
+  background: rgba(255, 59, 92, 0.1);
+  border: 1px solid var(--accent-red);
+  border-radius: 8px;
+  color: var(--accent-red);
+  margin-bottom: 1.5rem;
+}
+
+.hndl-error p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Loading Skeleton */
+.hndl-skeleton {
+  width: 100%;
+  padding: 2rem;
+}
+
+.skeleton-bar {
+  background: linear-gradient(
+    90deg,
+    rgba(15, 253, 209, 0.1) 0%,
+    rgba(15, 253, 209, 0.2) 50%,
+    rgba(15, 253, 209, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hndl-panel {
+    padding: 1.5rem;
+  }
+
+  .equation-display {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .equation-term .value {
+    font-size: 1.1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

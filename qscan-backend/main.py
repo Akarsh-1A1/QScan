@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -10,6 +11,12 @@ from enum import Enum
 from typing import Any, Optional
 from contextlib import asynccontextmanager
 
+# ── Backend-local config (must import before adding parent to sys.path) ──
+from config import settings
+
+# ── Fix import path so ai_ml, crypto, utils are visible from backend ──
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import redis
 import redis.asyncio as aioredis
 
@@ -17,9 +24,9 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from config import settings
 from ai_ml.risk_scoring_model import RiskScoringModel
 from ai_ml.anomaly_detection import CryptoAnomalyDetector
+from crypto.hndl_simulator import compute_hndl_risk
 
 
 # -----------------------------------------------------------
@@ -191,6 +198,17 @@ class HealthResponse(BaseModel):
     status: str
 
 
+class ComputeHNDLRequest(BaseModel):
+    scan_id: str
+    migration_years: int = 3
+    data_life_years: int = 7
+
+
+class ComputeHNDLResponse(BaseModel):
+    scan_id: str
+    hndl_risk: dict
+
+
 # -----------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------
@@ -236,7 +254,10 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
         "anomaly_detection": None,
     }
 
-    cmd = ["qscan", "--domain", target, "--output", output_dir, "--cbom"]
+    _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _MAIN_PY = os.path.join(_PROJECT_ROOT, "main.py")
+
+    cmd = [sys.executable, _MAIN_PY, "--domain", target, "--output", output_dir, "--cbom"]
 
     if discover:
         cmd.append("--discover")
@@ -447,3 +468,115 @@ async def get_cbom(scan_id: str):
         "risk_matrix": cbom.get("risk_matrix"),
         "pqc_migration_plan": cbom.get("pqc_migration_plan"),
     }
+
+
+@app.post("/api/v1/hndl-risk", response_model=ComputeHNDLResponse)
+async def compute_hndl(body: ComputeHNDLRequest):
+    """
+    Compute HNDL Mosca Inequality risk for a completed scan.
+
+    Parameters:
+    - scan_id: ID of the completed scan
+    - migration_years: X parameter (default 3)
+    - data_life_years: Y parameter (default 7)
+
+    Returns: HNDL risk analysis with breach window and urgency
+    """
+    record = await _aget_record(body.scan_id)
+
+    if record["status"] != ScanStatus.COMPLETED:
+        raise HTTPException(
+            status_code=409,
+            detail="Scan not completed — cannot compute HNDL risk yet",
+        )
+
+    scan_results = record.get("scan_results") or []
+
+    if not scan_results:
+        raise HTTPException(
+            status_code=400,
+            detail="No scan results found — cannot compute HNDL risk",
+        )
+
+    # Use the first scan result (most critical asset)
+    first_result = scan_results[0]
+
+    try:
+        hndl_result = compute_hndl_risk(
+            scan_result=first_result,
+            migration_years=body.migration_years,
+            data_life_years=body.data_life_years,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"HNDL risk computation failed: {str(e)}",
+        )
+
+    return {
+        "scan_id": body.scan_id,
+        "hndl_risk": hndl_result,
+    }
+
+
+@app.get("/api/v1/history")
+async def get_history():
+    """
+    Get scan history from Redis.
+    Returns all scan records with their status and basic info.
+    """
+    try:
+        r = _sync_redis()
+
+        # Get all scan keys
+        scan_keys = r.keys("scan:*")
+
+        history = []
+
+        for key in scan_keys:
+            try:
+                raw = r.get(key)
+                if raw:
+                    record = _deserialize(raw)
+                    history.append({
+                        "scan_id": record["scan_id"],
+                        "target": record["target"],
+                        "timestamp": record["timestamp"],
+                        "status": record["status"].value if isinstance(record["status"], ScanStatus) else record["status"],
+                        "assets_found": record.get("assets_found", 0),
+                        "risk_score": record.get("risk_score"),
+                    })
+            except Exception:
+                continue
+
+        r.close()
+
+        # Sort by timestamp descending (newest first)
+        history.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        return history
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve scan history: {str(e)}",
+        )
+
+
+@app.delete("/api/v1/scan/{scan_id}")
+async def delete_scan(scan_id: str):
+    """
+    Delete a scan record from Redis.
+    """
+    try:
+        r = _sync_redis()
+        r.delete(f"scan:{scan_id}")
+        r.close()
+
+        return {"message": f"Scan {scan_id} deleted successfully"}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete scan: {str(e)}",
+        )

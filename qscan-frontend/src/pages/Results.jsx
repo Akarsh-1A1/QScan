@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useScanResults } from "../hooks/useScan";
 import { motion } from "framer-motion";
@@ -10,6 +10,19 @@ import {
   PQCStatusPill,
 } from "../components/common/badges";
 
+import HNDLRiskPanel from "../components/HNDL/HNDLRiskPanel";
+
+import {
+  CRQCTimelineChart,
+  CryptoPostureRadar,
+  MoscaTimelineChart,
+  VulnerabilityBreakdown,
+} from "../components/charts/QuantumCharts";
+import "../components/charts/quantum_charts.css";
+
+import { generatePDFReport, downloadCBOM } from "../utils/reportGenerator";
+import { scanApi } from "../api/scanApi";
+
 import { calculateQuantumReadinessScore } from "../utils/pqcClassifier";
 
 import "./pages.css";
@@ -19,6 +32,17 @@ function Results() {
 
   /* ML branch added scanResults */
   const { cbom, scanResults, loading, error } = useScanResults(scanId);
+
+  // Track HNDL data for charts + PDF
+  const [hndlData, setHndlData] = useState(null);
+
+  useEffect(() => {
+    if (scanId && cbom) {
+      scanApi.getHNDLRisk(scanId).then(res => {
+        setHndlData(res.data.hndl_risk);
+      }).catch(() => {});
+    }
+  }, [scanId, cbom]);
 
   if (loading) {
     return (
@@ -75,6 +99,22 @@ function Results() {
             </p>
           </div>
 
+          {/* Report Actions */}
+          <div className="report-actions">
+            <button
+              className="btn-report btn-report-pdf"
+              onClick={() => generatePDFReport(cbom, scanId, hndlData)}
+            >
+              📄 Download PDF Report
+            </button>
+            <button
+              className="btn-report btn-report-cbom"
+              onClick={() => downloadCBOM(cbom)}
+            >
+              📋 Download CBOM (JSON)
+            </button>
+          </div>
+
           <div
             className="card"
             style={{
@@ -99,6 +139,9 @@ function Results() {
               {readinessLabel}
             </p>
           </div>
+
+          {/* HNDL Mosca Risk Simulator Panel */}
+          <HNDLRiskPanel scanId={scanId} />
 
           <div className="metric-grid">
 
@@ -370,6 +413,29 @@ function Results() {
               ))}
             </div>
           )}
+          {/* ─── Analytics Charts Section ─── */}
+          <div className="charts-section">
+            <div className="charts-section-title">
+              <h3>Quantum Risk Analytics</h3>
+              <div className="divider"></div>
+            </div>
+
+            <div className="charts-grid">
+              <CRQCTimelineChart
+                detectedAlgorithms={
+                  cbom.crypto_assets
+                    ?.flatMap(a => [
+                      a.cipher_analysis?.key_exchange?.algorithm,
+                      a.cipher_analysis?.authentication?.algorithm,
+                    ])
+                    .filter(Boolean) || []
+                }
+              />
+              <CryptoPostureRadar cbom={cbom} />
+              {hndlData && <MoscaTimelineChart hndlData={hndlData} />}
+              <VulnerabilityBreakdown cbom={cbom} />
+            </div>
+          </div>
 
           <details style={{ marginTop: "2rem" }}>
             <summary>Raw CBOM Data</summary>
