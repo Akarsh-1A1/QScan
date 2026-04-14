@@ -243,84 +243,51 @@ class VPNScanner:
 
     def _build_ikev2_sa_init(self) -> bytes:
         """
-        Build a minimal IKE_SA_INIT request with a single proposal that lists
-        common transform types so the responder echoes back its preferences.
+        Build a minimal IKE_SA_INIT request with a single proposal.
+        Per RFC 7296: non-last transforms use last_substruc=3, last transform uses 0.
         """
-        # Initiator SPI (8 random bytes)
         spi_i = os.urandom(8)
         spi_r = b"\x00" * 8
 
-        # Transforms: ENCR=AES-CBC(id=12) key=256, PRF=HMAC-SHA2-256(id=6),
-        #             INTEG=HMAC-SHA2-256-128(id=12), DH=ECP-256(id=19)
-        def make_transform(t_type: int, t_id: int, attr: bytes = b"") -> bytes:
-            payload = struct.pack(">BBH", t_type, 0, t_id) + attr
-            # last transform flag = 3, non-last = 0
-            return payload
-
-        transforms = [
-            make_transform(1, 12, struct.pack(">HH", 0x800E, 256)),  # ENCR AES-CBC 256
-            make_transform(2, 6),   # PRF HMAC-SHA2-256
-            make_transform(3, 12),  # INTEG HMAC-SHA2-256-128
-            make_transform(4, 19),  # DH ECP-256
+        # Transform list: (type, id, optional key-length attribute)
+        transform_defs = [
+            (1, 12, struct.pack(">HH", 0x800E, 256)),  # ENCR AES-CBC 256-bit
+            (2, 6,  b""),                               # PRF HMAC-SHA2-256
+            (3, 12, b""),                               # INTEG HMAC-SHA2-256-128
+            (4, 19, b""),                               # DH ECP-256
         ]
 
-        # Pack transforms with proper last/more flags
-        raw_transforms = b""
-        for i, t in enumerate(transforms):
-            last = (i == len(transforms) - 1)
-            t_type = t[0:1]
-            t_rest = t[1:]
-            transform_length = 8 + len(t_rest)  # header(4) + type(1) + res(1) + id(2) = 8
-            # transform: last(1) res(1) length(2) type(1) res(1) id(2) [attributes]
-            t_id_bytes = struct.unpack(">H", t[2:4])[0] if len(t) >= 4 else 0
-            attr = t[4:] if len(t) > 4 else b""
-            length = 8 + len(attr)
-            raw_transforms += struct.pack(">BBH BB H", 0 if not last else 0, 0, length,
-                                          t[0], 0, struct.unpack(">H", t[2:4])[0] if len(t) >= 4 else 0) + attr
-
-        # Build SA proposal
-        # proposal: last(1) res(1) length(2) num(1) proto_id(1) spi_size(1) num_transforms(1) [transforms]
-        num_transforms = len(transforms)
-        proposal_header = struct.pack(">BBHBBBB", 0, 0, 0, 1, 1, 0, num_transforms)
-
-        # Rebuild transforms properly
         raw_t = b""
-        for i, (t_type, t_id) in enumerate([
-            (1, 12), (2, 6), (3, 12), (4, 19)
-        ]):
-            last_flag = 0 if i < len(transforms) - 1 else 0
-            attr = struct.pack(">HH", 0x800E, 256) if t_type == 1 else b""
+        for i, (t_type, t_id, attr) in enumerate(transform_defs):
+            # RFC 7296 §3.3.2: last_substruc = 0 for last, 3 for non-last
+            last_flag = 3 if i < len(transform_defs) - 1 else 0
             t_len = 8 + len(attr)
             raw_t += struct.pack(">BBH BB H", last_flag, 0, t_len, t_type, 0, t_id) + attr
 
+        # Proposal substructure (RFC 7296 §3.3.1)
+        # last(1) reserved(1) length(2) proposal_num(1) proto_id(1) spi_size(1) num_transforms(1)
         proposal_len = 8 + len(raw_t)
-        proposal = struct.pack(">BBHBBBB", 0, 0, proposal_len, 1, 1, 0, len(transforms)) + raw_t
+        proposal = struct.pack(">BBHBBBB", 0, 0, proposal_len, 1, 1, 0, len(transform_defs)) + raw_t
 
-        # SA payload: next(1) crit(1) length(2) proposal
+        # SA payload: next_payload=0x28 (Nonce), critical=0, length, proposal
         sa_len = 4 + len(proposal)
-        sa_payload = struct.pack(">BBH", 0x21, 0, sa_len) + proposal  # next=0x21 (Nonce)
+        sa_payload = struct.pack(">BBH", 0x28, 0, sa_len) + proposal
 
-        # Nonce payload
+        # Nonce payload: next_payload=0 (no more), critical=0, length, nonce_data
         nonce = os.urandom(32)
-        nonce_payload = struct.pack(">BBH", 0, 0, 4 + len(nonce)) + nonce  # next=0 (no next)
-
-        # Chain: SA -> Nonce
-        sa_payload = struct.pack(">BBH", 0x28, 0, sa_len) + proposal  # next=0x28 (40=Nonce)
         nonce_payload = struct.pack(">BBH", 0, 0, 4 + len(nonce)) + nonce
 
         payloads = sa_payload + nonce_payload
 
-        # IKEv2 header: spi_i(8) spi_r(8) next_payload(1) ver(1) exchange_type(1)
-        #                flags(1) message_id(4) length(4)
-        header_len = 28
-        total_len = header_len + len(payloads)
-        # next payload = SA (33 = 0x21)
+        # IKEv2 fixed header (28 bytes)
+        # spi_i(8) spi_r(8) next_payload(1)=SA ver(1)=0x20 exchange(1)=0x22 flags(1) msg_id(4) len(4)
+        total_len = 28 + len(payloads)
         header = (spi_i + spi_r
-                  + struct.pack(">B", 0x21)   # next payload = SA
+                  + struct.pack(">B", 0x21)   # next payload = SA (33)
                   + struct.pack(">B", 0x20)   # version 2.0
-                  + struct.pack(">B", 0x22)   # IKE_SA_INIT = 34 = 0x22
-                  + struct.pack(">B", 0x08)   # flags: Initiator
-                  + struct.pack(">I", 0)      # message ID
+                  + struct.pack(">B", 0x22)   # IKE_SA_INIT = 34
+                  + struct.pack(">B", 0x08)   # flags: Initiator bit
+                  + struct.pack(">I", 0)      # message ID = 0
                   + struct.pack(">I", total_len))
         return header + payloads
 
@@ -437,6 +404,9 @@ class VPNScanner:
             ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
+            # Enforce TLS 1.2 minimum — older versions are deprecated and insecure.
+            # The TLS scanner (tls_scanner.py) handles legacy protocol enumeration.
+            ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
             with socket.create_connection((host, port), timeout=self.timeout) as raw:
                 with ctx.wrap_socket(raw, server_hostname=host) as tls:
