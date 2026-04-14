@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/Redis-7+-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
-  <img src="https://img.shields.io/badge/XGBoost-ML-FF6F00?style=for-the-badge&logo=xgboost&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-4.69-FF6F00?style=for-the-badge&logo=docker&logoColor=white" />
 </p>
 
 # QScan — Quantum Readiness Assessment Platform
