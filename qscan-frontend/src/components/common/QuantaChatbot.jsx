@@ -75,7 +75,7 @@ export default function QuantaChatbot({ cbom, scanResults, scanId }) {
       setMessages((prev) => [...prev, assistantMsg]);
 
       try {
-        const response = await fetch(`${BASE_URL}/api/v1/chat`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
