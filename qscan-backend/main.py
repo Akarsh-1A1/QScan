@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 from contextlib import asynccontextmanager
+import traceback
 
 # ── Backend-local config (must import before adding parent to sys.path) ──
 from config import settings
@@ -24,11 +25,21 @@ import redis.asyncio as aioredis
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ai_ml.risk_scoring_model import RiskScoringModel
 from ai_ml.anomaly_detection import CryptoAnomalyDetector
 from crypto.hndl_simulator import compute_hndl_risk
+
+try:
+    from groq import Groq
+    if settings.GROQ_API_KEY:
+        groq_client = Groq(api_key=settings.GROQ_API_KEY)
+    else:
+        groq_client = None
+except Exception:
+    groq_client = None
 
 
 # -----------------------------------------------------------
@@ -205,6 +216,15 @@ class ComputeHNDLRequest(BaseModel):
     migration_years: int = 3
     data_life_years: int = 7
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    scan_context: Optional[dict] = None
+
 
 class ComputeHNDLResponse(BaseModel):
     scan_id: str
@@ -335,7 +355,6 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
             record["assets_found"] = cbom.get(
                 "metadata", {}
             ).get("total_assets_scanned", 0)
-
         record["progress"] = 100
         record["status"] = ScanStatus.COMPLETED
 
@@ -566,6 +585,7 @@ async def get_history():
             detail=f"Failed to retrieve scan history: {str(e)}",
         )
 
+    
 
 @app.delete("/api/v1/scan/{scan_id}")
 async def delete_scan(scan_id: str):
@@ -587,6 +607,7 @@ async def delete_scan(scan_id: str):
 
 
 # -----------------------------------------------------------
+<<<<<<< HEAD
 # PQC Certificate System
 # -----------------------------------------------------------
 
@@ -742,3 +763,170 @@ async def verify_certificate(cert_id: str):
             "verified_at": datetime.now(timezone.utc).isoformat(),
         }
     }
+=======
+# Quanta AI Chatbot (Groq-powered)
+# -----------------------------------------------------------
+
+def _build_system_prompt(scan_context: dict | None) -> str:
+    """Build a system prompt for Quanta with scan report context."""
+    base = (
+        "You are Quanta, a friendly and knowledgeable AI assistant for QScan — "
+        "a Quantum Readiness Assessment Platform. You help users understand "
+        "their scan results, explain quantum computing threats to cryptography, "
+        "and guide them on post-quantum migration.\n\n"
+        "Personality: You are warm, approachable, and slightly playful. "
+        "You explain complex quantum security concepts in simple terms. "
+        "Use analogies when helpful. You refer to yourself as Quanta.\n\n"
+        "Key knowledge areas:\n"
+        "- Post-Quantum Cryptography (PQC) standards: FIPS 203 (ML-KEM/Kyber), "
+        "FIPS 204 (ML-DSA/Dilithium), FIPS 205 (SLH-DSA/SPHINCS+)\n"
+        "- Quantum threats: Shor's algorithm breaks RSA/ECC, Grover's halves symmetric key strength\n"
+        "- HNDL (Harvest Now, Decrypt Later) attacks and Mosca Inequality\n"
+        "- TLS/SSL protocol security and cipher suite analysis\n"
+        "- NIST migration timelines (IR 8547) — deprecated by 2035\n"
+        "- CBOM (Cryptographic Bill of Materials)\n\n"
+        "Guidelines:\n"
+        "- Always be helpful and educational\n"
+        "- If asked about something outside quantum security, politely redirect\n"
+        "- Use emojis sparingly for friendliness\n"
+        "- Keep responses concise but thorough\n"
+        "- When referencing scan data, cite specific findings\n"
+    )
+
+    if scan_context:
+        base += "\n--- SCAN REPORT CONTEXT ---\n"
+        base += "The user has just completed a scan. Here are the results:\n\n"
+
+        # CBOM summary
+        cbom = scan_context.get("cbom")
+        if cbom:
+            meta = cbom.get("metadata", {})
+            summary = cbom.get("summary", {})
+            base += f"Domain: {meta.get('organization_domain', 'Unknown')}\n"
+            base += f"Total Assets Scanned: {summary.get('total_assets', 0)}\n"
+            base += f"Average Risk Score: {summary.get('average_risk_score', 'N/A')}\n"
+            base += f"Quantum Readiness: {summary.get('overall_quantum_readiness', 'Unknown')}\n"
+
+            risk_dist = summary.get("risk_distribution", {})
+            if risk_dist:
+                base += f"Risk Distribution: CRITICAL={risk_dist.get('CRITICAL', 0)}, "
+                base += f"HIGH={risk_dist.get('HIGH', 0)}, "
+                base += f"MEDIUM={risk_dist.get('MEDIUM', 0)}, "
+                base += f"LOW={risk_dist.get('LOW', 0)}, "
+                base += f"SAFE={risk_dist.get('SAFE', 0)}\n"
+
+            pqc_dist = summary.get("pqc_status_distribution", {})
+            if pqc_dist:
+                base += f"PQC Status: PQC_READY={pqc_dist.get('PQC_READY', 0)}, "
+                base += f"MIGRATION_NEEDED={pqc_dist.get('MIGRATION_NEEDED', 0)}, "
+                base += f"CRITICAL={pqc_dist.get('CRITICAL', 0)}\n"
+
+            base += f"Forward Secrecy: {summary.get('forward_secrecy_adoption', 'N/A')}\n\n"
+
+            # Crypto assets details
+            assets = cbom.get("crypto_assets", [])
+            for i, asset in enumerate(assets[:5]):  # Limit to first 5
+                base += f"Asset {i+1}: {asset.get('host', '?')}:{asset.get('port', '?')}\n"
+                tls = asset.get("tls_configuration", {})
+                base += f"  TLS: {tls.get('protocol_version', '?')}\n"
+                base += f"  Cipher: {tls.get('negotiated_cipher', '?')}\n"
+                qa = asset.get("quantum_assessment", {})
+                base += f"  Risk Score: {qa.get('risk_score', '?')}\n"
+                base += f"  Risk Level: {qa.get('risk_level', '?')}\n"
+                base += f"  PQC Status: {qa.get('pqc_status', '?')}\n"
+                ta = qa.get("threat_assessment", {})
+                if ta:
+                    base += f"  Quantum Threat ETA: {ta.get('estimated_quantum_threat', '?')}\n"
+                    base += f"  Migration Deadline: {ta.get('migration_deadline', '?')}\n"
+                    base += f"  Urgency: {ta.get('urgency', '?')}\n"
+
+                recs = asset.get("recommendations", [])
+                if recs:
+                    base += "  Recommendations:\n"
+                    for rec in recs:
+                        base += f"    - {rec.get('component', '?')}: {rec.get('current', '?')} → {rec.get('recommended', '?')} ({rec.get('nist_standard', '')})\n"
+                base += "\n"
+
+            # Migration plan
+            migration = cbom.get("pqc_migration_plan", {})
+            if migration:
+                imm = migration.get("immediate_actions", [])
+                if imm:
+                    base += f"IMMEDIATE ACTIONS NEEDED: {len(imm)} items\n"
+                    for a in imm[:3]:
+                        base += f"  - {a.get('host', '?')}:{a.get('port', '?')} — {a.get('component', '?')}: migrate to {a.get('recommended', '?')}\n"
+
+        # Scan results (ML scores)
+        results = scan_context.get("scan_results", [])
+        if results:
+            base += "\nML Risk Scores:\n"
+            for i, r in enumerate(results[:5]):
+                ml = r.get("ml_risk_score")
+                anomaly = r.get("anomaly_detection", {})
+                base += f"  Asset {i+1}: ML Score={ml}, "
+                base += f"Anomaly={anomaly.get('is_anomaly', False)}"
+                reasons = anomaly.get("reasons", [])
+                if reasons:
+                    base += f" ({', '.join(reasons[:2])})"
+                base += "\n"
+
+        base += "\n--- END SCAN CONTEXT ---\n"
+
+    return base
+
+
+def _stream_groq_response(messages: list[dict]):
+    """Generator that yields SSE-formatted chunks from Groq."""
+    try:
+        completion = groq_client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=messages,
+            temperature=0.7,
+            max_completion_tokens=4096,
+            top_p=0.9,
+            stream=True,
+            stop=None,
+        )
+
+        for chunk in completion:
+            content = chunk.choices[0].delta.content
+            if content:
+                # SSE format
+                yield f"data: {json.dumps({'content': content})}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    except Exception as e:
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        yield "data: [DONE]\n\n"
+
+
+@app.post("/api/v1/chat")
+async def chat_stream(body: ChatRequest):
+    """
+    Quanta AI chatbot — streams responses via SSE.
+    Accepts conversation history + optional scan context.
+    """
+    if groq_client is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Groq client not configured. Set the GROQ_API_KEY environment variable.",
+        )
+
+    # Build messages with system prompt
+    system_prompt = _build_system_prompt(body.scan_context)
+    messages = [{"role": "system", "content": system_prompt}]
+
+    for msg in body.messages:
+        messages.append({"role": msg.role, "content": msg.content})
+
+    return StreamingResponse(
+        _stream_groq_response(messages),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+>>>>>>> origin/main

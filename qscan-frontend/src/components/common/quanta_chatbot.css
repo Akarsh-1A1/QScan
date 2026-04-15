@@ -1,0 +1,447 @@
+/* ─── Quanta AI Chatbot ─── */
+
+/* Floating avatar trigger */
+.quanta-trigger {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9997;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid rgba(0, 255, 209, 0.3);
+  overflow: hidden;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 255, 209, 0.15);
+}
+
+.quanta-trigger:hover {
+  transform: scale(1.12);
+  border-color: rgba(0, 255, 209, 0.7);
+  box-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.5),
+    0 0 35px rgba(0, 255, 209, 0.3);
+}
+
+.quanta-trigger img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Online pulse ring */
+.quanta-trigger::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 255, 209, 0.4);
+  animation: quantaPulseRing 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes quantaPulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+/* ─── Chat panel ─── */
+.quanta-panel {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  width: 420px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 16, 30, 0.97);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 255, 209, 0.15);
+  border-radius: 20px;
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.6),
+    0 0 50px rgba(0, 255, 209, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+/* Header */
+.quanta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(0, 255, 209, 0.06), transparent);
+  border-bottom: 1px solid rgba(0, 255, 209, 0.1);
+  flex-shrink: 0;
+}
+
+.quanta-header-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0, 255, 209, 0.3);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.quanta-header-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quanta-header-info {
+  flex: 1;
+}
+
+.quanta-header-name {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-quantum, #00FFD1);
+  letter-spacing: 0.5px;
+}
+
+.quanta-header-status {
+  font-size: 0.7rem;
+  color: var(--text-muted, #6B8FA8);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 1px;
+}
+
+.quanta-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0ffda1;
+  animation: quantaDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes quantaDotPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.quanta-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: var(--text-muted, #6B8FA8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 1.1rem;
+}
+
+.quanta-close:hover {
+  background: rgba(255, 59, 92, 0.12);
+  border-color: rgba(255, 59, 92, 0.3);
+  color: #FF3B5C;
+}
+
+/* Messages area */
+.quanta-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.quanta-messages::-webkit-scrollbar {
+  width: 5px;
+}
+.quanta-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.quanta-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 209, 0.15);
+  border-radius: 3px;
+}
+
+/* Message bubbles */
+.quanta-msg {
+  display: flex;
+  gap: 0.6rem;
+  max-width: 88%;
+}
+
+.quanta-msg-user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.quanta-msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.quanta-msg-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quanta-msg-user-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: white;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.quanta-bubble {
+  padding: 0.7rem 1rem;
+  border-radius: 16px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--text-primary, #E8F4FD);
+  word-wrap: break-word;
+}
+
+.quanta-bubble-assistant {
+  background: rgba(15, 34, 53, 0.7);
+  border: 1px solid rgba(0, 255, 209, 0.08);
+  border-top-left-radius: 4px;
+}
+
+.quanta-bubble-user {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-top-right-radius: 4px;
+}
+
+/* Markdown in messages */
+.quanta-bubble p {
+  margin: 0 0 0.4rem 0;
+}
+.quanta-bubble p:last-child {
+  margin-bottom: 0;
+}
+.quanta-bubble strong {
+  color: var(--accent-quantum, #00FFD1);
+  font-weight: 600;
+}
+.quanta-bubble code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: "Fira Code", monospace;
+}
+.quanta-bubble ul, .quanta-bubble ol {
+  margin: 0.3rem 0;
+  padding-left: 1.2rem;
+}
+.quanta-bubble li {
+  margin-bottom: 0.2rem;
+}
+
+/* Typing indicator */
+.quanta-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.quanta-typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(0, 255, 209, 0.5);
+  animation: quantaTyping 1.4s ease-in-out infinite;
+}
+
+.quanta-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.quanta-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes quantaTyping {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* Input area */
+.quanta-input-area {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid rgba(0, 255, 209, 0.08);
+  background: rgba(5, 11, 22, 0.5);
+}
+
+.quanta-input {
+  flex: 1;
+  background: rgba(15, 34, 53, 0.5);
+  border: 1px solid rgba(0, 255, 209, 0.1);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  color: var(--text-primary, #E8F4FD);
+  font-size: 0.84rem;
+  font-family: "Rajdhani", sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: none;
+  max-height: 80px;
+  min-height: 38px;
+}
+
+.quanta-input::placeholder {
+  color: var(--text-muted, #6B8FA8);
+  opacity: 0.7;
+}
+
+.quanta-input:focus {
+  border-color: rgba(0, 255, 209, 0.35);
+}
+
+.quanta-send {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, rgba(0, 255, 209, 0.2), rgba(0, 255, 209, 0.08));
+  color: var(--accent-quantum, #00FFD1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.quanta-send:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 255, 209, 0.3), rgba(0, 255, 209, 0.15));
+  box-shadow: 0 0 15px rgba(0, 255, 209, 0.2);
+}
+
+.quanta-send:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Welcome message */
+.quanta-welcome {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.quanta-welcome-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 255, 209, 0.2);
+  overflow: hidden;
+  margin: 0 auto 1rem;
+}
+
+.quanta-welcome-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quanta-welcome-title {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.1rem;
+  color: var(--accent-quantum, #00FFD1);
+  margin-bottom: 0.5rem;
+}
+
+.quanta-welcome-text {
+  font-size: 0.82rem;
+  color: var(--text-muted, #6B8FA8);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+/* Suggestion chips */
+.quanta-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0 0.5rem;
+}
+
+.quanta-chip {
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 255, 209, 0.15);
+  background: rgba(0, 255, 209, 0.05);
+  color: rgba(0, 255, 209, 0.8);
+  font-size: 0.72rem;
+  font-family: "Rajdhani", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.quanta-chip:hover {
+  background: rgba(0, 255, 209, 0.12);
+  border-color: rgba(0, 255, 209, 0.3);
+  color: #00FFD1;
+}
+
+/* Backdrop */
+.quanta-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(5, 11, 24, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .quanta-panel {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+  .quanta-trigger {
+    bottom: 1rem;
+    right: 1rem;
+  }
+}

@@ -51,6 +51,12 @@ export const scanApi = {
       data_life_years: dataLifeYears,
     }),
 
+  getNISTCompliance: (scanId) =>
+    api.get(`/api/v1/scan/${scanId}/nist-compliance`),
+
+  manualNISTCheck: () =>
+    api.post('/api/v1/nist-check'),
+
   getHistory: () =>
     api.get('/api/v1/history'),
 

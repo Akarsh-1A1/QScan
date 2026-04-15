@@ -27,6 +27,11 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "*"
 
+    # Groq AI (Quanta Chatbot)
+
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",")]

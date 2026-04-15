@@ -11,6 +11,7 @@ import {
 } from "../components/common/badges";
 
 import HNDLRiskPanel from "../components/HNDL/HNDLRiskPanel";
+import QuantaChatbot from "../components/common/QuantaChatbot";
 
 import {
   CRQCTimelineChart,
@@ -457,6 +458,9 @@ function Results() {
           </details>
 
         </motion.div>
+
+        {/* Quanta AI Chatbot */}
+        <QuantaChatbot cbom={cbom} scanResults={scanResults} scanId={scanId} />
       </div>
     </div>
   );
