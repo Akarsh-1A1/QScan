@@ -1,0 +1,138 @@
+/* ─── Regulatory Compliance Panel ─── */
+
+.compliance-section {
+  margin-top: 2rem;
+}
+
+.compliance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.compliance-header h3 {
+  margin: 0 0 0.25rem;
+  color: var(--text-primary);
+  font-size: 1.3rem;
+}
+
+.compliance-subtitle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* Score ring */
+.compliance-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.compliance-score-ring {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.compliance-score-ring::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+}
+
+.compliance-score-ring span {
+  position: relative;
+  z-index: 1;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.compliance-score-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* Grid */
+.compliance-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.compliance-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem;
+  transition: border-color 0.2s ease;
+}
+
+.compliance-card:hover {
+  border-color: rgba(15, 253, 209, 0.3);
+}
+
+.compliance-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.compliance-fw-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.compliance-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.compliance-ref {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: "JetBrains Mono", monospace;
+  margin-bottom: 0.5rem;
+}
+
+.compliance-req {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.compliance-finding {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 3px solid;
+  border-radius: 0 6px 6px 0;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .compliance-header {
+    flex-direction: column;
+  }
+}

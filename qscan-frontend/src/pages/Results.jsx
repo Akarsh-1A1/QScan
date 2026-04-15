@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useScanResults } from "../hooks/useScan";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +24,9 @@ import { generatePDFReport, downloadCBOM } from "../utils/reportGenerator";
 import { scanApi } from "../api/scanApi";
 
 import { calculateQuantumReadinessScore } from "../utils/pqcClassifier";
+
+import CompliancePanel from "../components/compliance/CompliancePanel";
+import RemediationPlaybook from "../components/remediation/RemediationPlaybook";
 
 import "./pages.css";
 
@@ -99,7 +102,6 @@ function Results() {
             </p>
           </div>
 
-          {/* Report Actions */}
           <div className="report-actions">
             <button
               className="btn-report btn-report-pdf"
@@ -113,6 +115,13 @@ function Results() {
             >
               📋 Download CBOM (JSON)
             </button>
+            <Link
+              to={`/certificate/${scanId}`}
+              className="btn-report btn-report-pdf"
+              style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0ffda1, #0fa)' , color: '#0a0f1a' }}
+            >
+              🛡️ View PQC Certificate
+            </Link>
           </div>
 
           <div
@@ -436,6 +445,9 @@ function Results() {
               <VulnerabilityBreakdown cbom={cbom} />
             </div>
           </div>
+
+          <CompliancePanel cbom={cbom} />
+          <RemediationPlaybook cbom={cbom} />
 
           <details style={{ marginTop: "2rem" }}>
             <summary>Raw CBOM Data</summary>

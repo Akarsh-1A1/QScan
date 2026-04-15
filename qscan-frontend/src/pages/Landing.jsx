@@ -1,10 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, Zap, BarChart3, Lock } from 'lucide-react';
+import { Zap, BarChart3, Lock } from 'lucide-react';
+import { scanApi } from '../api/scanApi';
 import './pages.css';
 
 function Landing() {
+  const [stats, setStats] = useState([
+    { label: 'Scans Completed', value: '—', color: 'var(--accent-blue)' },
+    { label: 'High-Risk Assets', value: '—', color: 'var(--accent-danger)' },
+    { label: 'PQC Ready', value: '—', color: 'var(--accent-safe)' },
+  ]);
+
+  useEffect(() => {
+    scanApi.getHistory()
+      .then(res => {
+        const scans = res.data || [];
+        const completed = scans.filter(s => s.status === 'completed');
+        const totalAssets = completed.reduce((sum, s) => sum + (s.assets_found || 0), 0);
+        const highRisk = completed.filter(s => s.risk_score && s.risk_score >= 60).length;
+        setStats([
+          { label: 'Scans Completed', value: String(completed.length), color: 'var(--accent-blue)' },
+          { label: 'High-Risk Targets', value: String(highRisk), color: 'var(--accent-danger)' },
+          { label: 'Total Assets Found', value: String(totalAssets), color: 'var(--accent-safe)' },
+        ]);
+      })
+      .catch(() => {
+        // API not available — show zeros
+        setStats([
+          { label: 'Scans Completed', value: '0', color: 'var(--accent-blue)' },
+          { label: 'High-Risk Targets', value: '0', color: 'var(--accent-danger)' },
+          { label: 'Total Assets Found', value: '0', color: 'var(--accent-safe)' },
+        ]);
+      });
+  }, []);
+
   const features = [
     {
       icon: <Lock size={32} />,
@@ -21,12 +51,6 @@ function Landing() {
       title: 'PQC Certification',
       description: 'Assess quantum-safety status and generate PQC readiness certificates'
     }
-  ];
-
-  const stats = [
-    { label: 'Assets Scanned', value: '2,847', color: 'var(--accent-blue)' },
-    { label: 'Vulnerabilities Found', value: '1,203', color: 'var(--accent-danger)' },
-    { label: 'PQC Certified', value: '412', color: 'var(--accent-safe)' }
   ];
 
   const containerVariants = {

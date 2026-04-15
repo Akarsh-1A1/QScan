@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import tempfile
 import uuid
+import hashlib
+import hmac
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
@@ -484,7 +486,9 @@ async def compute_hndl(body: ComputeHNDLRequest):
     """
     record = await _aget_record(body.scan_id)
 
-    if record["status"] != ScanStatus.COMPLETED:
+    status = record["status"]
+    status_val = status.value if isinstance(status, ScanStatus) else str(status)
+    if status_val != ScanStatus.COMPLETED.value:
         raise HTTPException(
             status_code=409,
             detail="Scan not completed — cannot compute HNDL risk yet",
@@ -580,3 +584,161 @@ async def delete_scan(scan_id: str):
             status_code=500,
             detail=f"Failed to delete scan: {str(e)}",
         )
+
+
+# -----------------------------------------------------------
+# PQC Certificate System
+# -----------------------------------------------------------
+
+_CERT_SECRET = os.environ.get("QSCAN_CERT_SECRET", "qscan-pnb-hackathon-2026-secret-key")
+
+def _compute_cert_status(cbom):
+    """
+    Compute PQC certificate status from CBOM data.
+    Returns (status, detected_pqc_algorithms, risk_score).
+    """
+    assets = cbom.get("crypto_assets", [])
+    summary = cbom.get("summary", {})
+    avg_risk = summary.get("average_risk_score", 100)
+    pqc_dist = summary.get("pqc_status_distribution", {})
+    total = summary.get("total_assets", 0)
+    pqc_ready = pqc_dist.get("PQC_READY", 0)
+    hybrid = pqc_dist.get("HYBRID_PQC", 0)
+    critical_count = summary.get("risk_distribution", {}).get("CRITICAL", 0)
+
+    # Collect detected PQC algorithms
+    pqc_algos = set()
+    for asset in assets:
+        kex = asset.get("cipher_analysis", {}).get("key_exchange") or {}
+        auth = asset.get("cipher_analysis", {}).get("authentication") or {}
+        if kex.get("quantum_safe"):
+            pqc_algos.add(kex.get("algorithm", "Unknown"))
+        if auth.get("quantum_safe"):
+            pqc_algos.add(auth.get("algorithm", "Unknown"))
+
+    # Determine status
+    if critical_count > 0 or avg_risk >= 80:
+        status = "CRITICAL"
+    elif total > 0 and pqc_ready == total:
+        status = "PQC_READY"
+    elif hybrid > 0 or pqc_ready > 0:
+        status = "HYBRID_PQC"
+    else:
+        status = "MIGRATION_NEEDED"
+
+    return status, list(pqc_algos), avg_risk
+
+
+def _sign_certificate(cert_data):
+    """Generate HMAC-SHA256 signature for certificate integrity."""
+    payload = json.dumps({
+        k: v for k, v in cert_data.items() if k != "signature"
+    }, sort_keys=True)
+    return hmac.new(
+        _CERT_SECRET.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+
+@app.post("/api/v1/certificate/{scan_id}")
+async def issue_certificate(scan_id: str):
+    """
+    Issue a PQC readiness certificate for a completed scan.
+    The certificate is signed with HMAC-SHA256 and stored in Redis.
+    """
+    record = await _aget_record(scan_id)
+
+    status = record["status"]
+    status_val = status.value if isinstance(status, ScanStatus) else str(status)
+    if status_val != ScanStatus.COMPLETED.value:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Scan not completed (status: {status_val}) — cannot issue certificate",
+        )
+
+    cbom_data = record.get("cbom")
+    if not cbom_data:
+        raise HTTPException(status_code=400, detail="No CBOM data found")
+
+    status, pqc_algos, avg_risk = _compute_cert_status(cbom_data)
+    cert_id = f"PQC-{uuid.uuid4().hex[:12].upper()}"
+    issued_at = datetime.now(timezone.utc).isoformat()
+    valid_until = datetime(
+        datetime.now(timezone.utc).year,
+        datetime.now(timezone.utc).month,
+        datetime.now(timezone.utc).day,
+        tzinfo=timezone.utc,
+    )
+    # 90-day validity
+    from datetime import timedelta
+    valid_until = (datetime.now(timezone.utc) + timedelta(days=90)).isoformat()
+
+    # CBOM hash for tamper evidence
+    cbom_hash = hashlib.sha256(
+        json.dumps(cbom_data, sort_keys=True).encode()
+    ).hexdigest()
+
+    cert = {
+        "certificate_id": cert_id,
+        "scan_id": scan_id,
+        "issued_to": record["target"],
+        "status": status,
+        "nist_algorithms": pqc_algos if pqc_algos else ["None detected"],
+        "total_assets": cbom_data.get("summary", {}).get("total_assets", 0),
+        "risk_score": round(avg_risk, 1),
+        "issued_at": issued_at,
+        "valid_until": valid_until,
+        "cbom_hash": cbom_hash[:32],
+        "issuer": "QScan Quantum Readiness Assessment Platform",
+        "standard": "NIST FIPS 203/204/205",
+    }
+
+    cert["signature"] = _sign_certificate(cert)
+
+    # Store in Redis
+    try:
+        r = _sync_redis()
+        r.set(f"cert:{cert_id}", json.dumps(cert), ex=90 * 86400)  # 90 days TTL
+        r.close()
+    except Exception:
+        pass  # Certificate is still valid even if Redis storage fails
+
+    return cert
+
+
+@app.get("/api/v1/verify/{cert_id}")
+async def verify_certificate(cert_id: str):
+    """
+    Verify a PQC certificate by its ID.
+    Check signature integrity and expiry.
+    """
+    try:
+        r = _sync_redis()
+        raw = r.get(f"cert:{cert_id}")
+        r.close()
+    except Exception:
+        raise HTTPException(status_code=500, detail="Certificate store unavailable")
+
+    if not raw:
+        raise HTTPException(status_code=404, detail="Certificate not found or expired")
+
+    cert = json.loads(raw)
+
+    # Verify HMAC signature
+    stored_sig = cert.get("signature")
+    expected_sig = _sign_certificate(cert)
+    sig_valid = hmac.compare_digest(stored_sig or "", expected_sig)
+
+    # Check expiry
+    valid_until = datetime.fromisoformat(cert["valid_until"])
+    is_expired = datetime.now(timezone.utc) > valid_until
+
+    return {
+        "certificate": cert,
+        "verification": {
+            "signature_valid": sig_valid,
+            "is_expired": is_expired,
+            "verified_at": datetime.now(timezone.utc).isoformat(),
+        }
+    }

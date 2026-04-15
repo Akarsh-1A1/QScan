@@ -28,6 +28,7 @@ class PQCClassifier:
         self.pqc_replacements = {
             "RSA": {"replacement": "ML-KEM-768 (Kyber)", "nist": "FIPS 203", "priority": "HIGH", "hybrid": "X25519+ML-KEM-768"},
             "ECDHE": {"replacement": "ML-KEM-768 (Kyber)", "nist": "FIPS 203", "priority": "MEDIUM", "hybrid": "X25519+ML-KEM-768"},
+            "ECDHE/DHE": {"replacement": "ML-KEM-768 (Kyber)", "nist": "FIPS 203", "priority": "MEDIUM", "hybrid": "X25519+ML-KEM-768"},
             "DHE": {"replacement": "ML-KEM-1024 (Kyber)", "nist": "FIPS 203", "priority": "HIGH", "hybrid": "FFDHE+ML-KEM-1024"},
             "ECDH": {"replacement": "ML-KEM-768 (Kyber)", "nist": "FIPS 203", "priority": "MEDIUM", "hybrid": "ECDH+ML-KEM-768"},
             "DH": {"replacement": "ML-KEM-1024 (Kyber)", "nist": "FIPS 203", "priority": "HIGH", "hybrid": "DH+ML-KEM-1024"},
@@ -218,7 +219,32 @@ class PQCClassifier:
                         "rationale": f"{alg} is vulnerable to Shor's algorithm. Migrate to {rep['replacement']} ({rep['nist']})."
                     })
 
+        # TLS 1.3 hides auth in cipher name, but the certificate itself still
+        # uses RSA/ECDSA which is quantum-vulnerable.  Detect from cert info.
         tls = result.get("tls_version") or ""
+        auth_info = ca.get("authentication")
+
+        if tls == "TLSv1.3" and not auth_info:
+            # Check certificate for RSA/ECDSA authentication
+            cert = result.get("certificate_info") or {}
+            issuer = cert.get("issuer") or {}
+            issuer_cn = issuer.get("commonName") or ""
+            # Most bank certificates use RSA; detect from issuer or assume RSA
+            cert_auth_alg = "RSA"  # Default for GeoTrust/DigiCert RSA CAs
+            if "ECDSA" in issuer_cn or "ECC" in issuer_cn:
+                cert_auth_alg = "ECDSA"
+
+            rep = self.pqc_replacements.get(cert_auth_alg)
+            if rep:
+                recs.append({
+                    "component": "Authentication",
+                    "current": f"{cert_auth_alg} (Certificate)",
+                    "recommended": "ML-DSA-65 (Dilithium)",
+                    "nist_standard": "FIPS 204",
+                    "priority": "MEDIUM",
+                    "hybrid_option": f"{cert_auth_alg}+ML-DSA-65",
+                    "rationale": f"TLS 1.3 certificate uses {cert_auth_alg} signatures, vulnerable to Shor's algorithm. Migrate to ML-DSA-65 (FIPS 204)."
+                })
 
         if tls in ("TLSv1.0", "TLSv1.1"):
 
@@ -240,16 +266,17 @@ class PQCClassifier:
                 "rationale": "TLS 1.3 provides improved cryptographic agility and PQC readiness."
             })
 
-            # TLS 1.3 still needs PQC hybrid KEM
-            if tls == "TLSv1.3":
-                recs.append({
-                    "component": "Key Exchange",
-                    "current": "ECDHE (TLS 1.3)",
-                    "recommended": "ML-KEM-768 (Kyber)",
-                    "priority": "MEDIUM",
-                    "hybrid_option": "X25519+ML-KEM-768",
-                    "rationale": "TLS 1.3 still relies on ECDHE which is vulnerable to Shor's algorithm. Deploy hybrid PQC key exchange."
-                })
+        # TLS 1.3 still needs PQC hybrid key agreement
+        if tls == "TLSv1.3":
+            recs.append({
+                "component": "TLS Handshake",
+                "current": "TLS 1.3 (ECDHE)",
+                "recommended": "TLS 1.3 + ML-KEM-768 Hybrid",
+                "nist_standard": "FIPS 203",
+                "priority": "MEDIUM",
+                "hybrid_option": "X25519+ML-KEM-768",
+                "rationale": "TLS 1.3 key agreement uses ECDHE which is quantum-vulnerable. Deploy hybrid PQC handshake per NIST FIPS 203."
+            })
 
         return recs
 

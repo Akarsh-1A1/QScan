@@ -57,6 +57,12 @@ export const scanApi = {
   deleteScan: (scanId) =>
     api.delete(`/api/v1/scan/${scanId}`),
 
+  issueCertificate: (scanId) =>
+    api.post(`/api/v1/certificate/${scanId}`),
+
+  verifyCertificate: (certId) =>
+    api.get(`/api/v1/verify/${certId}`),
+
   health: () =>
     api.get('/health'),  // Fixed: /health not /api/v1/health
 };
