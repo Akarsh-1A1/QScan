@@ -70,7 +70,7 @@ export const scanApi = {
     api.get(`/api/v1/verify/${certId}`),
 
   health: () =>
-    api.get('/health'),  // Fixed: /health not /api/v1/health
+    api.get('/api/v1/health'), 
 };
 
 export const mlApi = {
