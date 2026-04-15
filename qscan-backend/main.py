@@ -13,8 +13,10 @@ from contextlib import asynccontextmanager
 import traceback
 
 # ── Backend-local config (must import before adding parent to sys.path) ──
-from config import settings
-
+from confid_backend import settings
+import sys
+import os
+#sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 # ── Fix import path so ai_ml, crypto, utils are visible from backend ──
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -28,8 +30,10 @@ from pydantic import BaseModel
 
 from ai_ml.risk_scoring_model import RiskScoringModel
 from ai_ml.anomaly_detection import CryptoAnomalyDetector
+from config.settings import Settings as QScanSettings
+#sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scanner.vpn_scanner import VPNScanner
 from crypto.hndl_simulator import compute_hndl_risk
-
 try:
     from groq import Groq
     if settings.GROQ_API_KEY:
@@ -227,6 +231,41 @@ class ChatRequest(BaseModel):
 class ComputeHNDLResponse(BaseModel):
     scan_id: str
     hndl_risk: dict
+
+
+class VPNRecommendation(BaseModel):
+    component: str
+    current: str
+    recommended: str
+    nist_standard: str
+    priority: str          # CRITICAL | HIGH | MEDIUM | LOW
+    hybrid_option: str
+    rationale: str
+
+
+class VPNEndpointResult(BaseModel):
+    host: str
+    port: int
+    transport: str         # TCP | UDP
+    vpn_protocol: str      # IKEv2/IPsec | OpenVPN | SSL-VPN | WireGuard | HTTPS
+    vpn_product: str
+    detected: bool
+    confirmed: bool
+    scan_timestamp: str
+    tls_version: Optional[str] = None
+    cipher_suite: Optional[str] = None
+    cipher_bits: Optional[int] = None
+    encryption_algorithms: list[str] = []
+    prf_algorithms: list[str] = []
+    integrity_algorithms: list[str] = []
+    dh_groups: list[str] = []
+    pqc_status: str        # PQC_READY | HYBRID_PQC | MIGRATION_NEEDED | CRITICAL
+    quantum_risk_level: str  # SAFE | LOW | MEDIUM | HIGH | CRITICAL
+    quantum_risk_score: float
+    risk_score_is_estimate: bool
+    notes: str
+    recommendations: list[VPNRecommendation] = []
+    is_ssl_vpn: Optional[bool] = None
 
 
 # -----------------------------------------------------------
@@ -536,6 +575,30 @@ async def compute_hndl(body: ComputeHNDLRequest):
         "scan_id": body.scan_id,
         "hndl_risk": hndl_result,
     }
+
+
+@app.post("/api/v1/scan/vpn", response_model=list[VPNEndpointResult])
+async def scan_vpn(host: str):
+    """
+    Run VPN-only scan on a host and return PQC assessment.
+    
+    Parameters:
+    - host: Target hostname or IP address
+    
+    Returns: List of detected VPN endpoints with quantum-readiness assessment
+    """
+    try:
+        qscan_settings = QScanSettings()
+        scanner = VPNScanner(qscan_settings)
+        results = scanner.scan(host)
+        
+        return results
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"VPN scan failed: {str(e)}",
+        )
 
 
 @app.get("/api/v1/history")

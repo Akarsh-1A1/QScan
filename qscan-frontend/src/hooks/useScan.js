@@ -175,10 +175,10 @@ export function useScanHistory() {
   useEffect(() => {
     fetchHistory();
 
-    const interval = setInterval(fetchHistory, 5000);
+    const interval = setInterval(fetchHistory, 30000); // Poll every 30 seconds
 
     return () => clearInterval(interval);
-  }, [fetchHistory]);
+  }, []); // ✓ FIXED: Empty dependency array prevents infinite loop
 
   const deleteScan = async (scanId) => {
     try {

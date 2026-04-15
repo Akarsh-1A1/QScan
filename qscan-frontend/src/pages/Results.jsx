@@ -12,6 +12,7 @@ import {
 
 import HNDLRiskPanel from "../components/HNDL/HNDLRiskPanel";
 import QuantaChatbot from "../components/common/QuantaChatbot";
+import VPNScanResult from "../components/VPNScanResult";
 
 import {
   CRQCTimelineChart,
@@ -280,6 +281,15 @@ function Results() {
               </tbody>
             </table>
           </div>
+
+          {/* VPN Scan Results */}
+          {scanResults?.some(r => r.vpn_protocol) && (
+            <div style={{ marginTop: "2rem" }}>
+              <VPNScanResult 
+                endpoints={scanResults.filter(r => r.vpn_protocol)} 
+              />
+            </div>
+          )}
 
           {cbom.risk_matrix && cbom.risk_matrix.length > 0 && (
             <div className="card" style={{ marginTop: "2rem" }}>

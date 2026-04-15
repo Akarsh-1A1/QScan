@@ -17,6 +17,7 @@ from config.settings import Settings
 from scanner.asset_discovery import AssetDiscovery
 from scanner.tls_scanner import TLSScanner
 from scanner.port_scanner import PortScanner
+from scanner.vpn_scanner import VPNScanner
 from crypto.cipher_parser import CipherParser
 from crypto.pqc_classifier import PQCClassifier
 from crypto.hndl_simulator import compute_hndl_risk
@@ -238,6 +239,45 @@ def run_pipeline(args):
 
         if tls_result:
             all_scan_results.append(tls_result)
+
+    # ─────────────────────────────────────────────
+    # Phase 3.5 — VPN Scanning (PARALLEL)
+    # ─────────────────────────────────────────────
+
+    logger.info(f"[Phase 3.5] Scanning for VPN protocols on {len(targets)} target(s)")
+
+    vpn_scanner = VPNScanner(settings)
+    vpn_results = []
+
+    with ThreadPoolExecutor(max_workers=settings.max_threads) as executor:
+
+        future_map = {
+            executor.submit(vpn_scanner.scan, target): target for target in targets
+        }
+
+        for future in as_completed(future_map):
+
+            target = future_map[future]
+
+            try:
+                vpn_endpoints = future.result()
+
+                if vpn_endpoints:
+
+                    for endpoint in vpn_endpoints:
+                        logger.info(
+                            f"  ✓ VPN {target} — {endpoint.get('vpn_protocol')} on port {endpoint.get('port')}"
+                        )
+
+                        vpn_results.append(endpoint)
+
+            except Exception as e:
+                logger.warning(f"VPN scan failed for {target}: {e}")
+
+    # Add VPN results to scan results
+    all_scan_results.extend(vpn_results)
+
+    logger.info(f"  ✓ VPN scanning complete: {len(vpn_results)} endpoints detected")
 
     # ─────────────────────────────────────────────
     # AI MODEL LOADING
