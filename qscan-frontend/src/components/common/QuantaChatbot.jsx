@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/scanApi";
 import "./quanta_chatbot.css";
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 /**
  * QuantaChatbot — AI chatbot powered by Groq LLM.
@@ -74,7 +75,7 @@ export default function QuantaChatbot({ cbom, scanResults, scanId }) {
       setMessages((prev) => [...prev, assistantMsg]);
 
       try {
-        const response = await fetch("http://localhost:8000/api/v1/chat", {
+        const response = await fetch(`${BASE_URL}/api/v1/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
