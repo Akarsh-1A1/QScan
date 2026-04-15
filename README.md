@@ -46,7 +46,7 @@
 ### Asset Discovery & PQC Certificate
 | Asset Discovery Results | PQC Certificate Details |
 |:---:|:---:|
-| ![Asset Discovery](Run%20Snapshots/assets.jpeg) | — |
+| ![Asset Discovery](Run%20Snapshots/assets.jpeg) | ![PQC Certificate](Run%20Snapshots/PQCcert.jpeg) |
 
 ---
 
