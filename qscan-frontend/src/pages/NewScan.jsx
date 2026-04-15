@@ -153,7 +153,8 @@ function NewScan() {
                   { id: 'certificate_validation', label: 'Certificate Validation' },
                   { id: 'key_exchange', label: 'Key Exchange Algorithm' },
                   { id: 'security_headers', label: 'Security Headers' },
-                  { id: 'api_detection', label: 'API Endpoint Detection' }
+                  { id: 'api_detection', label: 'API Endpoint Detection' },
+                  { id: 'vpn_scan', label: 'VPN Protocol Detection' }
                 ].map(type => (
                   <div key={type.id} className="checkbox-item">
                     <input
@@ -209,7 +210,7 @@ function NewScan() {
           {/* Info Box */}
           <div className="card" style={{ marginTop: '2rem', padding: '1rem' }}>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              💡 <strong>Tip:</strong> Standard scan depth is recommended for most organizations. 
+              💡 <strong>Tip:</strong> Standard scan depth is recommended for most organizations.
               Deep scans include extensive enumeration and may take longer.
             </p>
           </div>

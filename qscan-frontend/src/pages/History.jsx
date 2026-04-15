@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import './pages.css';
 
 function History() {
-  const { history, loading, deleteScan } = useScanHistory();
+  const { history, loading, deleteScan, refetch } = useScanHistory(); // ✅ added refetch
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredHistory = history.filter(scan =>
@@ -52,10 +52,49 @@ function History() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2>Scan History</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-            Showing {filteredHistory.length} of {history.length} scans
-          </p>
+
+          {/* 🔥 Header + Refresh */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <div>
+              <h2>Scan History</h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                Showing {filteredHistory.length} of {history.length} scans
+              </p>
+            </div>
+
+            <button
+              onClick={async () => {
+                toast.loading("Refreshing...");
+                await refetch();
+                toast.dismiss();
+                toast.success("Updated");
+              }}
+              style={{
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                border: "1px solid rgba(0,255,170,0.3)",
+                background: "linear-gradient(135deg, rgba(0,255,170,0.15), rgba(0,200,255,0.15))",
+                color: "#00ffd0",
+                cursor: "pointer",
+                fontWeight: "500",
+                transition: "all 0.2s ease",
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = "scale(1.05)";
+                e.target.style.boxShadow = "0 0 8px rgba(0,255,170,0.4)";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = "scale(1)";
+                e.target.style.boxShadow = "none";
+              }}
+            >
+              🔄 Refresh
+            </button>
+          </div>
 
           {/* Search */}
           <div className="history-filter">
@@ -98,7 +137,9 @@ function History() {
                       <RiskBadge score={scan.risk_score} size="sm" />
                     </td>
                     <td>
-                      <span className={`badge badge-${scan.status === 'completed' ? 'safe' : scan.status}`}>{scan.status}</span>
+                      <span className={`badge badge-${scan.status === 'completed' ? 'safe' : scan.status}`}>
+                        {scan.status}
+                      </span>
                     </td>
                     <td>
                       <Link
@@ -129,6 +170,7 @@ function History() {
               message={`No scans found matching "${searchTerm}"`}
             />
           )}
+
         </motion.div>
       </div>
     </div>

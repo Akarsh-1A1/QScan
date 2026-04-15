@@ -16,8 +16,7 @@ import traceback
 
 # ── Backend-local config (must import before adding parent to sys.path) ──
 from config import settings
-print("🔥 GROQ KEY:", settings.GROQ_API_KEY)
-print("🔥 CWD:", os.getcwd())
+
 
 # ── Fix import path so ai_ml, crypto, utils are visible from backend ──
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -33,6 +32,7 @@ from pydantic import BaseModel
 from ai_ml.risk_scoring_model import RiskScoringModel
 from ai_ml.anomaly_detection import CryptoAnomalyDetector
 from crypto.hndl_simulator import compute_hndl_risk
+from scanner.vpn_scanner import VPNScanner
 
 try:
     from groq import Groq
@@ -229,6 +229,41 @@ class ComputeHNDLResponse(BaseModel):
     hndl_risk: dict
 
 
+class VPNRecommendation(BaseModel):
+    component: str
+    current: str
+    recommended: str
+    nist_standard: str
+    priority: str
+    hybrid_option: str
+    rationale: str
+
+
+class VPNEndpointResult(BaseModel):
+    host: str
+    port: int
+    transport: str
+    vpn_protocol: str
+    vpn_product: str
+    detected: bool
+    confirmed: bool
+    scan_timestamp: str
+    tls_version: Optional[str] = None
+    cipher_suite: Optional[str] = None
+    cipher_bits: Optional[int] = None
+    encryption_algorithms: list[str] = []
+    prf_algorithms: list[str] = []
+    integrity_algorithms: list[str] = []
+    dh_groups: list[str] = []
+    pqc_status: str
+    quantum_risk_level: str
+    quantum_risk_score: float
+    risk_score_is_estimate: bool
+    notes: str
+    recommendations: list[VPNRecommendation] = []
+    is_ssl_vpn: Optional[bool] = None
+
+
 # -----------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------
@@ -251,7 +286,14 @@ def _read_json(path: str) -> Any:
 # Scan worker
 # -----------------------------------------------------------
 
-def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports: list[int] | None):
+def _run_qscan(
+    scan_id: str,
+    target: str,
+    discover: bool,
+    output_dir: str,
+    ports: list[int] | None,
+    vpn_scan: bool,
+):
     r = _sync_redis()
 
     record = {
@@ -281,6 +323,9 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
 
     if ports:
         cmd.extend(["--ports", ",".join(str(p) for p in ports)])
+
+    if vpn_scan:
+        cmd.append("--vpn")
 
     _append_log(record, f"Running: {' '.join(cmd)}")
     _redis_save(r, record)
@@ -358,8 +403,8 @@ def _run_qscan(scan_id: str, target: str, discover: bool, output_dir: str, ports
         r.close()
 
 
-async def _run_qscan_async(scan_id: str, target: str, discover: bool, output_dir: str, ports):
-    await asyncio.to_thread(_run_qscan, scan_id, target, discover, output_dir, ports)
+async def _run_qscan_async(scan_id: str, target: str, discover: bool, output_dir: str, ports, vpn_scan):
+    await asyncio.to_thread(_run_qscan, scan_id, target, discover, output_dir, ports, vpn_scan)
 
 
 # -----------------------------------------------------------
@@ -378,6 +423,7 @@ async def start_scan(body: StartScanRequest, background_tasks: BackgroundTasks):
     output_dir = tempfile.mkdtemp(prefix=f"qscan_{scan_id}_")
 
     discover = body.discover or ("discover" in body.scan_types)
+    vpn_scan = "vpn_scan" in body.scan_types
 
     record = {
         "scan_id": scan_id,
@@ -403,6 +449,7 @@ async def start_scan(body: StartScanRequest, background_tasks: BackgroundTasks):
         discover,
         output_dir,
         body.ports,
+        vpn_scan,
     )
 
     return {
@@ -514,6 +561,22 @@ async def compute_hndl(body: ComputeHNDLRequest):
         "scan_id": body.scan_id,
         "hndl_risk": hndl_result,
     }
+
+
+@app.post("/api/v1/scan/vpn", response_model=list[VPNEndpointResult])
+async def scan_vpn(host: str):
+    """
+    Run VPN-only scan on a host and return PQC assessment.
+    """
+    try:
+        scanner = VPNScanner(settings)
+        results = scanner.scan(host)
+        return results
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"VPN scan failed: {str(e)}",
+        )
 
 
 @app.get("/api/v1/history")

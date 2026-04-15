@@ -12,6 +12,7 @@ import {
 
 import HNDLRiskPanel from "../components/HNDL/HNDLRiskPanel";
 import QuantaChatbot from "../components/common/QuantaChatbot";
+import VPNScanResult from "../components/VPNScanResult";
 
 import {
   CRQCTimelineChart,
@@ -44,7 +45,7 @@ function Results() {
     if (scanId && cbom) {
       scanApi.getHNDLRisk(scanId).then(res => {
         setHndlData(res.data.hndl_risk);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [scanId, cbom]);
 
@@ -81,15 +82,15 @@ function Results() {
     readinessScore >= 80
       ? "Quantum Ready"
       : readinessScore >= 50
-      ? "Partial PQC"
-      : "Not Ready";
+        ? "Partial PQC"
+        : "Not Ready";
 
   const readinessColor =
     readinessScore >= 80
       ? "var(--accent-safe)"
       : readinessScore >= 50
-      ? "orange"
-      : "red";
+        ? "orange"
+        : "red";
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -119,7 +120,7 @@ function Results() {
             <Link
               to={`/certificate/${scanId}`}
               className="btn-report btn-report-pdf"
-              style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0ffda1, #0fa)' , color: '#0a0f1a' }}
+              style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0ffda1, #0fa)', color: '#0a0f1a' }}
             >
               🛡️ View PQC Certificate
             </Link>
@@ -290,6 +291,15 @@ function Results() {
             </table>
           </div>
 
+          {/* VPN Scan Results */}
+          {scanResults?.some(r => r.vpn_protocol) && (
+            <div style={{ marginTop: "2rem" }}>
+              <VPNScanResult
+                endpoints={scanResults.filter(r => r.vpn_protocol)}
+              />
+            </div>
+          )}
+
           {cbom.risk_matrix && cbom.risk_matrix.length > 0 && (
             <div className="card" style={{ marginTop: "2rem" }}>
               <h3>Risk Matrix</h3>
@@ -423,7 +433,7 @@ function Results() {
               ))}
             </div>
           )}
-          {/* ─── Analytics Charts Section ─── */}
+
           <div className="charts-section">
             <div className="charts-section-title">
               <h3>Quantum Risk Analytics</h3>
@@ -459,7 +469,6 @@ function Results() {
 
         </motion.div>
 
-        {/* Quanta AI Chatbot */}
         <QuantaChatbot cbom={cbom} scanResults={scanResults} scanId={scanId} />
       </div>
     </div>

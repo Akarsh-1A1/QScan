@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { scanApi } from "../api/scanApi";
 import { formatCBOMData } from "../utils/pqcClassifier";
@@ -99,13 +98,13 @@ export const useScanResults = (scanId) => {
   }, [fetchResults]);
 
   return {
-  results,
-  cbom,
-  scanResults: results?.scan_results || [],
-  loading,
-  error,
-  refetch: fetchResults,
-};
+    results,
+    cbom,
+    scanResults: results?.scan_results || [],
+    loading,
+    error,
+    refetch: fetchResults,
+  };
 };
 
 
@@ -175,10 +174,10 @@ export function useScanHistory() {
   useEffect(() => {
     fetchHistory();
 
-    const interval = setInterval(fetchHistory, 5000);
+    const interval = setInterval(fetchHistory, 30000); // Poll every 30 seconds
 
     return () => clearInterval(interval);
-  }, [fetchHistory]);
+  }, []); // ✓ FIXED: Empty dependency array prevents infinite loop
 
   const deleteScan = async (scanId) => {
     try {
@@ -197,3 +196,37 @@ export function useScanHistory() {
     deleteScan,
   };
 }
+
+export const useVPNScan = () => {
+  const [vpnResults, setVPNResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const scanVPN = useCallback(async (host) => {
+    if (!host) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await scanApi.scanVPN(host);
+      setVPNResults(Array.isArray(response.data) ? response.data : []);
+      return response.data;
+    } catch (err) {
+      const message = err.response?.data?.detail || err.message;
+      setError(message);
+      console.error("VPN scan error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    vpnResults,
+    loading,
+    error,
+    scanVPN,
+    setVPNResults,
+  };
+};
