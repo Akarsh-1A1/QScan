@@ -316,6 +316,22 @@ npm start
 
 ---
 
+## 🚀 Deployment
+
+QScan is deployed across three cloud platforms for production use:
+
+### **Backend → Render | Frontend → Vercel | Cache → Upstash**
+
+| Component | Platform | Purpose |
+|---|---|---|
+| **Backend API** | [Render](https://render.com) | FastAPI server hosting quantum risk engine |
+| **Frontend Dashboard** | [Vercel](https://vercel.com) | React 19 static site with global CDN |
+| **Redis Cache** | [Upstash](https://upstash.com) | Serverless Redis with REST API |
+
+**Live Demo:** [https://q-scan-psi.vercel.app/] 
+
+---
+
 ## 🔧 Usage
 
 ### CLI Mode
@@ -429,13 +445,6 @@ XGBoost model that:
 - Provides confidence-scored predictions
 - Falls back to rule-based scoring when model is unavailable
 
-### 3. Anomaly Detection (`ai_ml/anomaly_detection.py`)
-
-Isolation Forest model that:
-- Flags unusual crypto configurations that rule-based + ML scoring might miss
-- Provides anomaly scores with confidence levels (Normal / Anomalous)
-- Detects misconfigurations, deprecated cipher usage, or unexpected combinations
-
 ---
 
 ## 🛡️ PQC Certificate
@@ -528,11 +537,12 @@ Quanta responds with structured, step-by-step guidance including specific FIPS s
 | **Core Scanner** | Python 3.11+ — cryptography, pyOpenSSL, dnspython, python-nmap |
 | **AI/ML** | scikit-learn, XGBoost, NumPy, Pandas, joblib |
 | **Backend API** | FastAPI, Uvicorn, Pydantic |
-| **Cache/Store** | Redis (async via redis-py) |
+| **Cache/Store** | Redis (via Upstash in production) |
 | **Frontend** | React 19, React Router, Recharts, Framer Motion, Axios |
 | **UI** | Lucide React icons, interactive designs |
 | **PDF Export** | jsPDF |
 | **AI Chatbot** | Groq API (Quanta assistant) |
+| **Deployment** | Render (backend), Vercel (frontend), Upstash (Redis) |
 
 ---
 
@@ -562,6 +572,7 @@ Quanta responds with structured, step-by-step guidance including specific FIPS s
 - [x] **Advanced Analytics Charts (CRQC Timeline, Posture Radar, Mosca Breach Window, Vulnerability Breakdown)**
 - [x] **Interactive Mosca Inequality Calculator with adjustable parameters**
 - [x] **HNDL (Harvest Now, Decrypt Later) vulnerability assessment**
+- [x] **Production Deployment (Render + Vercel + Upstash)**
 
 ---
 
