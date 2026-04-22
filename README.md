@@ -16,6 +16,43 @@
 
 ---
 
+## 🎥 QScan Demo Walkthrough
+
+Due to Render's free-tier limitations (backend may sleep after inactivity), the live deployment might take time to respond or may not always be available.
+
+👉 For a complete walkthrough of all features, please refer to the deployed application demo video below:
+
+[▶️ Watch Demo Video](https://drive.google.com/file/d/16ANA3Bv2rC5RpgjFVd00Zp0ZuyFv2Y3l/view?usp=sharing)
+
+This video demonstrates:
+- Full deployed QScan application walkthrough
+- Quantum Risk Scoring & Dashboard  
+- CBOM generation & PDF export
+- PQC Migration recommendations and plan 
+- Compliance mapping & analytics  
+- Quanta AI chatbot interaction
+- Previous scans history
+
+---  
+
+## 🚀 Overview
+
+**QScan** is a full-stack Quantum Readiness Assessment Platform built for the **PNB Cybersecurity Hackathon 2026**. It provides an end-to-end pipeline to:
+
+- 🔍 **Discover** public-facing banking assets (subdomains, APIs, VPN endpoints) via DNS enumeration & certificate transparency
+- 🔐 **Analyze** TLS/cryptographic configurations with deep cipher suite inspection
+- 📦 **Generate** a structured Cryptographic Bill of Materials (CBOM) in JSON format
+- 🤖 **Score** quantum vulnerability using both rule-based and AI/ML-driven risk analysis (XGBoost + Isolation Forest anomaly detection)
+- 📋 **Recommend** NIST-standardized PQC migration paths with urgency timelines
+- 🛡️ **Issue** PQC Readiness Certificates to verified quantum-safe assets
+- 📜 **Map** scan findings to RBI, CERT-In, NIST, and PCI DSS regulatory requirements
+- 🩺 **Generate** Engineer's Remediation Playbooks with copy-paste config templates
+- 📄 **Export** PDF reports with full scan results and compliance summaries
+- 🤖 **Chat** with **Quanta**, the embedded AI assistant for scan-aware quantum security guidance
+- 📊 **Visualize** all results through an interactive, real-time Quantum Readiness Dashboard
+
+---
+
 ## 📸 Screenshots
 
 ### Quantum Readiness Dashboard
@@ -47,24 +84,6 @@
 | Asset Discovery Results | PQC Certificate Details |
 |:---:|:---:|
 | ![Asset Discovery](Run%20Snapshots/assets.jpeg) | ![PQC Certificate](Run%20Snapshots/PQCcert.jpeg) |
-
----
-
-## 🚀 Overview
-
-**QScan** is a full-stack Quantum Readiness Assessment Platform built for the **PNB Cybersecurity Hackathon 2026**. It provides an end-to-end pipeline to:
-
-- 🔍 **Discover** public-facing banking assets (subdomains, APIs, VPN endpoints) via DNS enumeration & certificate transparency
-- 🔐 **Analyze** TLS/cryptographic configurations with deep cipher suite inspection
-- 📦 **Generate** a structured Cryptographic Bill of Materials (CBOM) in JSON format
-- 🤖 **Score** quantum vulnerability using both rule-based and AI/ML-driven risk analysis (XGBoost + Isolation Forest anomaly detection)
-- 📋 **Recommend** NIST-standardized PQC migration paths with urgency timelines
-- 🛡️ **Issue** PQC Readiness Certificates to verified quantum-safe assets
-- 📜 **Map** scan findings to RBI, CERT-In, NIST, and PCI DSS regulatory requirements
-- 🩺 **Generate** Engineer's Remediation Playbooks with copy-paste config templates
-- 📄 **Export** PDF reports with full scan results and compliance summaries
-- 🤖 **Chat** with **Quanta**, the embedded AI assistant for scan-aware quantum security guidance
-- 📊 **Visualize** all results through an interactive, real-time Quantum Readiness Dashboard
 
 ---
 
