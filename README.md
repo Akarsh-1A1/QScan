@@ -20,9 +20,9 @@
 
 Due to Render's free-tier limitations (backend may sleep after inactivity), the live deployment might take time to respond or may not always be available.
 
-👉 For a complete walkthrough of all features, please refer to the deployed application demo video below:
+👉 For a complete walkthrough of all features, please refer to the deployed application **demo video below**:
 
-[▶️ Watch Demo Video](https://drive.google.com/file/d/16ANA3Bv2rC5RpgjFVd00Zp0ZuyFv2Y3l/view?usp=sharing)
+[![Watch Demo](https://img.youtube.com/vi/ki81cFlBbfk/0.jpg)](https://youtu.be/ki81cFlBbfk)
 
 This video demonstrates:
 - Full deployed QScan application walkthrough
