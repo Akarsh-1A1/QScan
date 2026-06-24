@@ -230,7 +230,17 @@ QScan/
 # Clone the repository
 git clone https://github.com/Akarsh-1A1/Qscan.git
 cd QScan
+```
 
+> **⚠️ Important**
+>
+> The `.env` file has been excluded from the repository. To enable the **Quanta AI Chatbot**, create a `.env` file inside the `qscan-backend/` directory and add:
+>
+> ```env
+> GROQ_API_KEY=your_groq_api_key_here
+> ```
+
+```bash
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate        # Linux/Mac
